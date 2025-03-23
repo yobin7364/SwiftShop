@@ -17,6 +17,10 @@ export const validateRegistration = (data) => {
       "any.only": "Passwords do not match.",
       "any.required": "Confirm password is required.",
     }),
+    role: Joi.string().valid("buyer", "seller").required().messages({
+      "any.only": "Role must be either 'buyer' or 'seller'.",
+      "any.required": "Role is required.",
+    }),
   });
 
   const { error } = schema.validate(data, { abortEarly: false }); // Capture all errors

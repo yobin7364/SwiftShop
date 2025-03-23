@@ -16,6 +16,7 @@ const UserSchema = new Schema(
       type: String,
       required: true,
     },
+    role: { type: [String], enum: ["buyer", "seller"], required: true }, // Only two roles
   },
   {
     timestamps: true, // createdAt, updatedAt

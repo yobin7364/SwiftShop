@@ -32,7 +32,8 @@ router.post("/register", async (req, res) => {
     // Check if the email already exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
-      errors.email = "Email already exists";
+      errors.email =
+        "This email is already registered. If you want to add or upgrade your role to 'Buyer' or 'Seller,' please log in to your account and use the role upgrade feature.";
       return res.status(400).json(errors);
     }
 
@@ -41,6 +42,7 @@ router.post("/register", async (req, res) => {
       name: req.body.name,
       email: req.body.email,
       password: req.body.password,
+      role: [req.body.role],
     });
 
     // Hash password and save user
@@ -67,7 +69,7 @@ router.post("/login", (req, res) => {
     return res.status(400).json(errors);
   }
 
-  const { email, password } = req.body;
+  const { email, password, role: selectedRole } = req.body;
 
   // Find user by email
   User.findOne({ email })
@@ -81,19 +83,33 @@ router.post("/login", (req, res) => {
       bcrypt.compare(password, user.password).then((isMatch) => {
         if (isMatch) {
           // User matched
-          const payload = { id: user.id, name: user.name }; // JWT payload without avatar
+          const payload = { id: user.id, name: user.name, role: user.role }; // JWT payload
 
           // Sign token
-          jwt.sign(payload, secret, { expiresIn: 36000 }, (err, token) => {
-            if (err) {
-              return res.status(500).json({ error: "Error signing the token" });
-            }
+          jwt.sign(
+            payload,
+            secret,
+            { expiresIn: "7d" }, // Token expires in 7 days
+            (err, token) => {
+              if (err) {
+                return res
+                  .status(500)
+                  .json({ error: "Error signing the token" });
+              }
 
-            res.json({
-              success: true,
-              token: "Bearer " + token, // Bearer token with a space after 'Bearer'
-            });
-          });
+              res.json({
+                success: true,
+                token: "Bearer " + token, // Bearer token with a space after 'Bearer'
+                user: {
+                  id: user.id,
+                  name: user.name,
+                  email: user.email,
+                  role: user.role, // Send role in response
+                  selectedRole,
+                },
+              });
+            }
+          );
         } else {
           errors.password = "Password incorrect";
           return res.status(400).json(errors);
@@ -116,7 +132,55 @@ router.get(
       id: req.user.id,
       name: req.user.name,
       email: req.user.email,
+      role: [req.user.role],
     });
+  }
+);
+
+// @route   PATCH /api/users/upgrade
+// @desc    Upgrade user role (e.g., add 'seller' role)
+// @access  Private (requires authentication)
+router.patch(
+  "/upgrade",
+
+  // Authenticate using JWT without sessions (stateless authentication)
+  passport.authenticate("jwt", { session: false }),
+
+  async (req, res) => {
+    try {
+      const { role } = req.body;
+      const validRoles = ["buyer", "seller"];
+
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+
+      // Get authenticated user from middleware
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if the role already exists
+      if (user.role.includes(role)) {
+        return res
+          .status(400)
+          .json({ error: `You already have the '${role}' role` });
+      }
+
+      // Add the new role
+      user.role.push(role);
+      await user.save();
+
+      res.json({
+        message: `Role '${role}' added successfully`,
+        role: user.role,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Server error" });
+    }
   }
 );
 
