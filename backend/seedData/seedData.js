@@ -3,9 +3,7 @@ import { seedUsers } from "./userSeed.js"; // Import user seed function
 import { seedBooks } from "./bookSeed.js";
 import User from "../models/User.module.js";
 
-mongoose.connect(
-  "mongodb+srv://punyobin123:B7luWwyOzAsPc35W@cluster0.ij4hr.mongodb.net/swiftmart_db?retryWrites=true&w=majority&appName=Cluster0"
-);
+mongoose.connect("replace it with mongo-url");
 
 const seedData = async () => {
   try {
