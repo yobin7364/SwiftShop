@@ -25,16 +25,21 @@ router.post("/register", async (req, res) => {
 
   // Check validation
   if (!isValid) {
-    return res.status(400).json(errors);
+    return res.status(400).json({
+      success: false,
+      errors,
+    });
   }
 
   try {
     // Check if the email already exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
-      errors.email =
-        "This email is already registered. If you want to add or upgrade your role to 'Buyer' or 'Seller,' please log in to your account and use the role upgrade feature.";
-      return res.status(400).json(errors);
+      errors.email = "This email is already registered.";
+      return res.status(400).json({
+        success: false,
+        errors,
+      });
     }
 
     // Create new user instance
@@ -50,10 +55,16 @@ router.post("/register", async (req, res) => {
     newUser.password = await bcrypt.hash(newUser.password, salt);
 
     const savedUser = await newUser.save();
-    return res.json(savedUser);
+    return res.json({
+      success: true,
+      message: "User registered successfully",
+      user: savedUser,
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
+    return res.status(500).json({
+      success: false,
+      errors: "Server error",
+    });
   }
 });
 
@@ -66,7 +77,10 @@ router.post("/login", (req, res) => {
 
   // Check if validation fails
   if (!isValid) {
-    return res.status(400).json(errors);
+    return res.status(400).json({
+      success: false,
+      errors,
+    });
   }
 
   const { email, password, role: selectedRole } = req.body;
@@ -75,8 +89,11 @@ router.post("/login", (req, res) => {
   User.findOne({ email })
     .then((user) => {
       if (!user) {
-        errors.email = "User not found";
-        return res.status(400).json(errors);
+        errors.email = "Email not found";
+        return res.status(400).json({
+          success: false,
+          errors,
+        });
       }
 
       // Check password
@@ -94,7 +111,7 @@ router.post("/login", (req, res) => {
               if (err) {
                 return res
                   .status(500)
-                  .json({ error: "Error signing the token" });
+                  .json({ success: false, error: "Error signing the token" });
               }
 
               res.json({
@@ -112,12 +129,18 @@ router.post("/login", (req, res) => {
           );
         } else {
           errors.password = "Password incorrect";
-          return res.status(400).json(errors);
+          return res.status(400).json({
+            success: false,
+            errors,
+          });
         }
       });
     })
     .catch((err) => {
-      res.status(500).json({ error: "Server error" });
+      return res.status(500).json({
+        success: false,
+        errors: "Server error",
+      });
     });
 });
 
@@ -159,14 +182,20 @@ router.patch(
       const user = await User.findById(req.user.id);
 
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        errors.email = "Email not found";
+        return res.status(400).json({
+          success: false,
+          errors,
+        });
       }
 
       // Check if the role already exists
       if (user.role.includes(role)) {
-        return res
-          .status(400)
-          .json({ error: `You already have the '${role}' role` });
+        errors.role = `You already have the '${role}' role`;
+        return res.status(400).json({
+          success: false,
+          errors,
+        });
       }
 
       // Add the new role

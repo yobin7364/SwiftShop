@@ -10,7 +10,7 @@ export const registerUser = createAsyncThunk(
       return data; // Success response
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Registration failed"
+        error.response?.data?.errors || "Registration failed"
       );
     }
   }
@@ -30,7 +30,8 @@ export const loginUser = createAsyncThunk(
 
       return data; // Success response
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Login failed");
+      console.log("check here ok", error.response?.data);
+      return rejectWithValue(error.response?.data?.errors || "Login failed");
     }
   }
 );

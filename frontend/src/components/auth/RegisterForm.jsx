@@ -1,69 +1,92 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useForm, Controller } from "react-hook-form";
 import {
   Container,
   TextField,
   Button,
   Typography,
   Box,
-  Paper,
-  Link,
+  Alert,
   Radio,
   RadioGroup,
   FormControlLabel,
   FormLabel,
+  Paper,
+  Link,
   CircularProgress,
-  Alert,
+  Snackbar,
 } from "@mui/material";
-import { useForm, Controller } from "react-hook-form";
-import { useDispatch, useSelector } from "react-redux";
+import { registerUser } from "../../action/authAction";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../../action/authAction"; // your login thunk
-// import { setError } from "../../slice/authSlice"; // optional: clear or set errors
 
-const Login = () => {
+const Register = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // For navigation
+
+  // Get the loading and error state from Redux
   const { loading, error } = useSelector((state) => state.auth);
 
+  // Set up React Hook Form with default values
   const {
     register,
     handleSubmit,
-    control,
-    setError: setFieldError,
     formState: { errors },
+    watch,
+    control,
+    setError,
   } = useForm({
     defaultValues: {
-      role: "buyer",
+      role: "buyer", // Set "buyer" as the default role
     },
   });
 
+  // Show error snackbar when there's an error in registration
+  const [openSnackbar, setOpenSnackbar] = React.useState(false);
+
+  useEffect(() => {
+    if (error) {
+      setOpenSnackbar(true); // Open snackbar if there’s an error
+    }
+  }, [error]);
+
   const onSubmit = async (data) => {
     try {
-      // Attempt to login and unwrap the result (this will throw an error if rejected)
-      await dispatch(loginUser(data)).unwrap();
+      await dispatch(registerUser(data)).unwrap(); // use unwrap if using createAsyncThunk
 
-      // Navigate to dashboard if login is successful
-      //navigate("/dashboard");
+      navigate("/login"); // for example
     } catch (err) {
-      // Handle known validation errors from API (i.e., errors returned from your API)
+      // Handle known validation errors from API
+
       if (err) {
         if (err.email) {
-          setFieldError("email", {
+          setError("email", {
             type: "manual",
             message: err.email,
           });
         }
         if (err.password) {
-          setFieldError("password", {
+          setError("password", {
             type: "manual",
             message: err.password,
           });
         }
+        if (err.password2) {
+          setError("password2", {
+            type: "manual",
+            message: err.password2,
+          });
+        }
       } else {
-        // Unexpected error (network issues, server issues, etc.)
+        // Unexpected error (network, server down, etc.)
         console.error("Unexpected error:", err);
       }
     }
+  };
+
+  // Close the error snackbar
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   return (
@@ -85,18 +108,26 @@ const Login = () => {
             width: "100%",
             boxShadow: 3,
             borderRadius: 2,
-            backgroundColor: "#f9f9f9", // off-white
+            backgroundColor: "#f9f9f9",
           }}
         >
           <Typography variant="h5" component="h2">
-            Login
+            Register
           </Typography>
-
           <Box
             component="form"
             onSubmit={handleSubmit(onSubmit)}
             sx={{ mt: 2, width: "100%" }}
           >
+            <TextField
+              fullWidth
+              label="Name"
+              variant="outlined"
+              margin="normal"
+              {...register("name", { required: "Name is required" })}
+              error={!!errors.name}
+              helperText={errors.name?.message}
+            />
             <TextField
               fullWidth
               label="Email"
@@ -107,13 +138,12 @@ const Login = () => {
                 required: "Email is required",
                 pattern: {
                   value: /\S+@\S+\.\S+/,
-                  message: "Invalid email format",
+                  message: "Invalid email address",
                 },
               })}
               error={!!errors.email}
               helperText={errors.email?.message}
             />
-
             <TextField
               fullWidth
               label="Password"
@@ -122,16 +152,35 @@ const Login = () => {
               type="password"
               {...register("password", {
                 required: "Password is required",
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters",
+                },
               })}
               error={!!errors.password}
               helperText={errors.password?.message}
             />
+            <TextField
+              fullWidth
+              label="Confirm Password"
+              variant="outlined"
+              margin="normal"
+              type="password"
+              {...register("password2", {
+                required: "Confirm Password is required",
+                validate: (value) =>
+                  value === watch("password") || "Passwords must match",
+              })}
+              error={!!errors.password2}
+              helperText={errors.password2?.message}
+            />
 
-            {/* Role selection */}
+            {/* Role selection for Buyer or Seller */}
             <FormLabel sx={{ mt: 2 }}>Role</FormLabel>
             <Controller
               name="role"
               control={control}
+              defaultValue="buyer"
               render={({ field }) => (
                 <RadioGroup {...field} row>
                   <FormControlLabel
@@ -148,33 +197,45 @@ const Login = () => {
               )}
             />
             {errors.role && (
-              <Alert severity="error">{errors.role.message}</Alert>
+              <Alert severity="error">{errors.role?.message}</Alert>
             )}
 
+            {/* Display the loading spinner when the form is submitting */}
             <Button
               fullWidth
               variant="contained"
               color="primary"
               type="submit"
               sx={{ mt: 2 }}
-              disabled={loading}
+              disabled={loading} // Disable button when loading
             >
               {loading ? (
-                <CircularProgress size={24} sx={{ color: "#fff" }} />
+                <CircularProgress size={24} color="secondary" />
               ) : (
-                "Login"
+                "Register"
               )}
             </Button>
           </Box>
 
+          {/* Error Snackbar */}
+          <Snackbar
+            open={openSnackbar}
+            autoHideDuration={6000}
+            onClose={handleCloseSnackbar}
+          >
+            <Alert onClose={handleCloseSnackbar} severity="error">
+              {error?.message || "An error occurred during registration."}
+            </Alert>
+          </Snackbar>
+
           <Typography variant="body2" align="center" sx={{ marginTop: 2 }}>
-            Don’t have an account?{" "}
+            Already have an account?{" "}
             <Link
               href="#"
-              onClick={() => navigate("/register")}
-              sx={{ cursor: "pointer", fontWeight: 500 }}
+              onClick={() => navigate("/login")}
+              sx={{ cursor: "pointer" }}
             >
-              Register here
+              Log in
             </Link>
           </Typography>
         </Paper>
@@ -183,4 +244,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
