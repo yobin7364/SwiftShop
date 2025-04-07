@@ -171,7 +171,7 @@ const Login = () => {
             Don’t have an account?{" "}
             <Link
               href="#"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/registerForm")}
               sx={{ cursor: "pointer", fontWeight: 500 }}
             >
               Register here

@@ -4,6 +4,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { Card, CardContent, Typography, Box, Link } from "@mui/material";
 import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 // Sample eBooks data
 const ebooks = [
@@ -116,6 +117,7 @@ const PrevArrow = ({ onClick, isDisabled }) => (
 
 const FreeEbookCarousel = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const navigate = useNavigate();
 
   const settings = {
     dots: false,
@@ -189,6 +191,7 @@ const FreeEbookCarousel = () => {
                   boxShadow: 4,
                 },
               }}
+              onClick={() => navigate("/bookDetail")}
             >
               <img
                 src={book.image}
