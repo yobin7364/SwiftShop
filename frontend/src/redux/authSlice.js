@@ -5,14 +5,21 @@ const authSlice = createSlice({
   name: "auth",
   initialState: {
     user: null,
-    token: null,
     loading: false,
     error: null,
+    isAuthenticated: false,
   },
   reducers: {
+    setCurrentUser: (state, action) => {
+      state.user = action.payload;
+      state.isAuthenticated = !!(
+        action.payload && Object.keys(action.payload).length > 0
+      );
+    },
     logout: (state) => {
       state.user = null;
       state.error = null;
+      state.isAuthenticated = false;
       localStorage.removeItem("authToken");
     },
     clearError: (state) => {
@@ -45,6 +52,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user || null;
         state.error = null;
+        state.isAuthenticated = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -53,4 +61,5 @@ const authSlice = createSlice({
   },
 });
 
+export const { setCurrentUser, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

@@ -124,6 +124,7 @@ const Register = () => {
               label="Name"
               variant="outlined"
               margin="normal"
+              sx={{ backgroundColor: "#ffffff" }}
               {...register("name", { required: "Name is required" })}
               error={!!errors.name}
               helperText={errors.name?.message}
@@ -134,6 +135,7 @@ const Register = () => {
               variant="outlined"
               margin="normal"
               type="email"
+              sx={{ backgroundColor: "#ffffff" }}
               {...register("email", {
                 required: "Email is required",
                 pattern: {
@@ -150,6 +152,7 @@ const Register = () => {
               variant="outlined"
               margin="normal"
               type="password"
+              sx={{ backgroundColor: "#ffffff" }}
               {...register("password", {
                 required: "Password is required",
                 minLength: {
@@ -166,6 +169,7 @@ const Register = () => {
               variant="outlined"
               margin="normal"
               type="password"
+              sx={{ backgroundColor: "#ffffff" }}
               {...register("password2", {
                 required: "Confirm Password is required",
                 validate: (value) =>
@@ -230,11 +234,7 @@ const Register = () => {
 
           <Typography variant="body2" align="center" sx={{ marginTop: 2 }}>
             Already have an account?{" "}
-            <Link
-              href="#"
-              onClick={() => navigate("/login")}
-              sx={{ cursor: "pointer" }}
-            >
+            <Link onClick={() => navigate("/login")} sx={{ cursor: "pointer" }}>
               Log in
             </Link>
           </Typography>

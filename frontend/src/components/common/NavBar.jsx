@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState } from "react";
 import { styled, alpha } from "@mui/material/styles";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -6,18 +6,19 @@ import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import InputBase from "@mui/material/InputBase";
-import Badge from "@mui/material/Badge";
-import MenuItem from "@mui/material/MenuItem";
-import Menu from "@mui/material/Menu";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
-import AccountCircle from "@mui/icons-material/AccountCircle";
-import MailIcon from "@mui/icons-material/Mail";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import MoreIcon from "@mui/icons-material/MoreVert";
 import colors from "../pages/buyer/styles/colors";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../../redux/authSlice";
+
+import LoginIcon from "@mui/icons-material/Login";
+import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
+import { AccountCircle } from "@mui/icons-material";
+import { Menu, MenuItem } from "@mui/material";
+import { searchBooks } from "../../action/BookAction";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -59,104 +60,29 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-export default function PrimarySearchAppBar() {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [mobileMoreAnchorEl, setMobileMoreAnchorEl] = React.useState(null);
+export default function NavBar() {
+  const dispatch = useDispatch();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const isMenuOpen = Boolean(anchorEl);
-  const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
-  const navigate = useNavigate();
-
-  const handleProfileMenuOpen = (event) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  // Open the menu
+  const handleMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleMobileMenuClose = () => {
-    setMobileMoreAnchorEl(null);
-  };
-
-  const handleMenuClose = () => {
+  // Close the menu
+  const handleClose = () => {
     setAnchorEl(null);
-    handleMobileMenuClose();
   };
 
-  const handleMobileMenuOpen = (event) => {
-    setMobileMoreAnchorEl(event.currentTarget);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    handleClose();
+    navigate("/login");
   };
-
-  const menuId = "primary-search-account-menu";
-  const renderMenu = (
-    <Menu
-      anchorEl={anchorEl}
-      anchorOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      id={menuId}
-      keepMounted
-      transformOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      open={isMenuOpen}
-      onClose={handleMenuClose}
-    >
-      <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-      <MenuItem onClick={handleMenuClose}>My account</MenuItem>
-    </Menu>
-  );
-
-  const mobileMenuId = "primary-search-account-menu-mobile";
-  const renderMobileMenu = (
-    <Menu
-      anchorEl={mobileMoreAnchorEl}
-      anchorOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      id={mobileMenuId}
-      keepMounted
-      transformOrigin={{
-        vertical: "top",
-        horizontal: "right",
-      }}
-      open={isMobileMenuOpen}
-      onClose={handleMobileMenuClose}
-    >
-      <MenuItem>
-        <IconButton size="large" aria-label="show 4 new mails" color="inherit">
-          <Badge badgeContent={4} color="error">
-            <MailIcon />
-          </Badge>
-        </IconButton>
-        <p>Messages</p>
-      </MenuItem>
-      <MenuItem>
-        <IconButton
-          size="large"
-          aria-label="show 17 new notifications"
-          color="inherit"
-        >
-          <Badge badgeContent={17} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
-        <p>Notifications</p>
-      </MenuItem>
-      <MenuItem onClick={handleProfileMenuOpen}>
-        <IconButton
-          size="large"
-          aria-label="account of current user"
-          aria-controls="primary-search-account-menu"
-          aria-haspopup="true"
-          color="inherit"
-        >
-          <AccountCircle />
-        </IconButton>
-        <p>Profile</p>
-      </MenuItem>
-    </Menu>
-  );
 
   return (
     <Box sx={{ flexGrow: 1, marginBottom: "40px" }}>
@@ -196,48 +122,85 @@ export default function PrimarySearchAppBar() {
             <StyledInputBase
               placeholder="Search for eBooks..."
               inputProps={{ "aria-label": "search" }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !!searchTerm) {
+                  dispatch(searchBooks({ query: searchTerm, page: 1 }));
+                  //navigate("/searchResults?q=" + searchTerm); // optional route change
+                }
+              }}
             />
           </Search>
           <Box sx={{ flexGrow: 1 }} />
           <Box sx={{ display: { xs: "none", md: "flex" } }}>
-            {/* <IconButton
-              size="large"
-              aria-label="show 4 new mails"
-              color="inherit"
-            >
-              <Badge badgeContent={4} color="error">
-                <MailIcon />
-              </Badge>
-            </IconButton>
-            <IconButton
-              size="large"
-              aria-label="show 17 new notifications"
-              color="inherit"
-            >
-              <Badge badgeContent={17} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton> */}
-            {/* <IconButton
-              size="large"
-              edge="end"
-              aria-label="account of current user"
-              aria-controls={menuId}
-              aria-haspopup="true"
-              onClick={handleProfileMenuOpen}
-              color="inherit"
-            >
-              <AccountCircle />
-            </IconButton> */}
+            {isAuthenticated ? (
+              <>
+                <div style={{ marginLeft: "auto" }}>
+                  <IconButton
+                    edge="end"
+                    color="inherit"
+                    onClick={handleMenuClick}
+                    aria-controls="profile-menu"
+                    aria-haspopup="true"
+                    sx={{ display: "flex", alignItems: "center" }} // Align items horizontally
+                  >
+                    <AccountCircle sx={{ marginRight: 1 }} />{" "}
+                    {/* Adds space between the icon and text */}
+                    <Typography variant="h6" sx={{ marginLeft: 0 }}>
+                      Profile
+                    </Typography>
+                  </IconButton>
 
-            <Button color="inherit" onClick={() => navigate("/login")}>
-              Login
-            </Button>
-            <Button color="inherit" onClick={() => navigate("/registerForm")}>
-              Register
-            </Button>
+                  {/* Profile Menu */}
+                  <Menu
+                    id="profile-menu"
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleClose}
+                  >
+                    <MenuItem
+                      onClick={() => {
+                        navigate("/profile");
+                        handleClose();
+                      }}
+                    >
+                      Profile
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => {
+                        navigate("/buyerBooks");
+                        handleClose();
+                      }}
+                    >
+                      Your Book
+                    </MenuItem>
+                    <MenuItem onClick={handleLogout}>Logout</MenuItem>
+                  </Menu>
+                </div>
+              </>
+            ) : (
+              <>
+                <Button
+                  color="inherit"
+                  onClick={() => navigate("/login")}
+                  startIcon={<LoginIcon />}
+                  sx={{ mr: 2 }} // Adding right margin for spacing
+                >
+                  Login
+                </Button>
+                <Button
+                  color="inherit"
+                  onClick={() => navigate("/registerForm")}
+                  startIcon={<AppRegistrationIcon />}
+                  sx={{ mr: 2 }} // Adding right margin for spacing
+                >
+                  Register
+                </Button>
+              </>
+            )}
           </Box>
-          <Box sx={{ display: { xs: "flex", md: "none" } }}>
+          {/* <Box sx={{ display: { xs: "flex", md: "none" } }}>
             <IconButton
               size="large"
               aria-label="show more"
@@ -248,11 +211,9 @@ export default function PrimarySearchAppBar() {
             >
               <MoreIcon />
             </IconButton>
-          </Box>
+          </Box> */}
         </Toolbar>
       </AppBar>
-      {renderMobileMenu}
-      {renderMenu}
     </Box>
   );
 }

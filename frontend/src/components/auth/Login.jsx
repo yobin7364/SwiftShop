@@ -19,6 +19,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../action/authAction"; // your login thunk
 // import { setError } from "../../slice/authSlice"; // optional: clear or set errors
+import { setCurrentUser } from "../../redux/authSlice";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -40,10 +41,13 @@ const Login = () => {
   const onSubmit = async (data) => {
     try {
       // Attempt to login and unwrap the result (this will throw an error if rejected)
-      await dispatch(loginUser(data)).unwrap();
+      const decoded = await dispatch(loginUser(data)).unwrap();
+
+      // set current user
+      dispatch(setCurrentUser(decoded));
 
       // Navigate to dashboard if login is successful
-      //navigate("/dashboard");
+      navigate("/");
     } catch (err) {
       // Handle known validation errors from API (i.e., errors returned from your API)
       if (err) {
@@ -103,6 +107,7 @@ const Login = () => {
               variant="outlined"
               margin="normal"
               type="email"
+              sx={{ backgroundColor: "#ffffff" }}
               {...register("email", {
                 required: "Email is required",
                 pattern: {
@@ -120,6 +125,7 @@ const Login = () => {
               variant="outlined"
               margin="normal"
               type="password"
+              sx={{ backgroundColor: "#ffffff" }}
               {...register("password", {
                 required: "Password is required",
               })}
@@ -171,7 +177,7 @@ const Login = () => {
             Don’t have an account?{" "}
             <Link
               href="#"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/registerForm")}
               sx={{ cursor: "pointer", fontWeight: 500 }}
             >
               Register here

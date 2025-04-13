@@ -1,5 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import setAuthToken from "../utils/setAuthToken";
+import { jwtDecode } from "jwt-decode";
 
 // Register User
 export const registerUser = createAsyncThunk(
@@ -22,15 +24,20 @@ export const loginUser = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const { data } = await axios.post("/api/users/login", userData);
+      const token = data.token;
 
       // Save token in localStorage
-      if (data.token) {
-        localStorage.setItem("authToken", data.token);
+      if (token) {
+        localStorage.setItem("authToken", token);
       }
 
-      return data; // Success response
+      // set token to Auth header
+      setAuthToken(token);
+
+      const decoded = jwtDecode(token);
+
+      return decoded; // Success response
     } catch (error) {
-      console.log("check here ok", error.response?.data);
       return rejectWithValue(error.response?.data?.errors || "Login failed");
     }
   }
