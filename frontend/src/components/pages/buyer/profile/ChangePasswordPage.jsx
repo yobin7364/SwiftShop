@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Box, Card, Typography, TextField, Button, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import CommonToast from "../../../common/CommonToast";
 
 const ChangePasswordPage = () => {
   const {
@@ -13,8 +14,25 @@ const ChangePasswordPage = () => {
 
   const navigate = useNavigate();
 
+  // For snack bar
+
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
   const onSubmit = (data) => {
     console.log(data);
+    showSnackbar("Review submitted successfully!", "success");
     // Dispatch change password action here
   };
 
@@ -92,6 +110,12 @@ const ChangePasswordPage = () => {
           </Stack>
         </form>
       </Card>
+      <CommonToast
+        open={openSnackbar}
+        message={snackbarMessage}
+        severity={snackbarSeverity}
+        onClose={handleCloseSnackbar}
+      />
     </Box>
   );
 };

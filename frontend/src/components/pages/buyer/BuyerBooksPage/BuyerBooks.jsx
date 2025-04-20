@@ -16,6 +16,8 @@ import {
   TextField,
 } from "@mui/material";
 
+import CommonToast from "../../../common/CommonToast";
+
 const ebooks = [
   {
     title: "Buchanan's Express",
@@ -56,6 +58,22 @@ export default function BuyerBooks() {
     setPage(value);
   };
 
+  // For snack bar
+
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
   const handleGiveReview = (book) => {
     setSelectedBook(book);
     setRating(0);
@@ -74,6 +92,7 @@ export default function BuyerBooks() {
       review,
     });
     setOpen(false);
+    showSnackbar("Review submitted successfully!", "success");
     // Here you would send (bookId, rating, review) anonymously to your backend
   };
 
@@ -205,6 +224,12 @@ export default function BuyerBooks() {
           </>
         )}
       </Dialog>
+      <CommonToast
+        open={openSnackbar}
+        message={snackbarMessage}
+        severity={snackbarSeverity}
+        onClose={handleCloseSnackbar}
+      />
     </Box>
   );
 }
