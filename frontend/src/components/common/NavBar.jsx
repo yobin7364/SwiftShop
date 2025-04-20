@@ -85,7 +85,12 @@ export default function NavBar() {
   };
 
   return (
-    <Box sx={{ flexGrow: 1, marginBottom: "40px" }}>
+    <Box
+      sx={{
+        flexGrow: 1,
+        //marginBottom: "40px"
+      }}
+    >
       <AppBar position="static" sx={{ backgroundColor: colors.primary }}>
         <Toolbar
           sx={{
@@ -161,7 +166,7 @@ export default function NavBar() {
                   >
                     <MenuItem
                       onClick={() => {
-                        navigate("/profile");
+                        navigate("/profilePage");
                         handleClose();
                       }}
                     >

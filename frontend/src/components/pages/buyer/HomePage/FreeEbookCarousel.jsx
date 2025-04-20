@@ -150,6 +150,7 @@ const FreeEbookCarousel = () => {
         minWidth: "800px", // Your min width
         margin: "auto",
         padding: "20px 0",
+        paddingTop: 10,
       }}
     >
       <Box

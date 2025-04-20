@@ -63,6 +63,8 @@ export default function BuyerBooks() {
         maxWidth: "1200px",
         minWidth: "800px",
         margin: "0 auto",
+        paddingTop: 10,
+        minHeight: "72vh",
       }}
     >
       <Typography variant="h4" gutterBottom>

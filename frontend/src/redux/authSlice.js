@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { registerUser, loginUser } from "../action/authAction"; // Make sure to import your thunk
+import { registerUser, loginUser, currentUserInfo } from "../action/authAction"; // Make sure to import your thunk
 
 const authSlice = createSlice({
   name: "auth",
@@ -8,6 +8,7 @@ const authSlice = createSlice({
     loading: false,
     error: null,
     isAuthenticated: false,
+    currentUserInfo: null,
   },
   reducers: {
     setCurrentUser: (state, action) => {
@@ -55,6 +56,22 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Get Current User Info
+    builder
+      .addCase(currentUserInfo.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(currentUserInfo.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentUserInfo = action.payload || null;
+        state.error = null;
+      })
+      .addCase(currentUserInfo.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

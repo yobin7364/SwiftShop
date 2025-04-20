@@ -42,3 +42,19 @@ export const loginUser = createAsyncThunk(
     }
   }
 );
+
+// Get current user information
+export const currentUserInfo = createAsyncThunk(
+  "users/current",
+  async (userData, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get("/api/users/current", userData);
+
+      return data; // Success response
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.errors || "Current User failed to load"
+      );
+    }
+  }
+);

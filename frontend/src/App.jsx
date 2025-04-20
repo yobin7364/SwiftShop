@@ -7,12 +7,14 @@ import HomePage from "./components/pages/buyer/HomePage/HomePage";
 import NavBar from "./components/common/NavBar";
 import BookDetail from "./components/pages/buyer/BookDetail/BookDetail";
 import PrivateRoute from "./components/common/PrivateRoute";
-import Profile from "./components/pages/buyer/profile/profile";
 import setAuthToken from "./utils/setAuthToken";
 import { jwtDecode } from "jwt-decode";
 import { setCurrentUser, logout } from "./redux/authSlice";
 import { useSelector } from "react-redux";
 import BuyerBooks from "./components/pages/buyer/BuyerBooksPage/BuyerBooks";
+import ProfilePage from "./components/pages/buyer/profile/ProfilePage";
+import ChangePasswordPage from "./components/pages/buyer/profile/ChangePasswordPage";
+import Footer from "./components/common/Footer";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -45,12 +47,18 @@ function App() {
         <Route path="/registerForm" element={<RegisterForm />} />
         <Route path="/bookDetail" element={<BookDetail />} />
         <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profilePage" element={<ProfilePage />} />
         </Route>
+
+        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+          <Route path="/changePassword" element={<ChangePasswordPage />} />
+        </Route>
+
         <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
           <Route path="/buyerBooks" element={<BuyerBooks />} />
         </Route>
       </Routes>
+      <Footer />
     </Router>
   );
 }
