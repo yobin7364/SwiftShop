@@ -14,7 +14,7 @@ const ChangePasswordPage = () => {
 
   const navigate = useNavigate();
 
-  // For snack bar
+  // For snack bar Start
 
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -29,6 +29,8 @@ const ChangePasswordPage = () => {
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
+
+  // For snack Bar end
 
   const onSubmit = (data) => {
     console.log(data);

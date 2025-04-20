@@ -14,10 +14,14 @@ import { useSelector } from "react-redux";
 import BuyerBooks from "./components/pages/buyer/BuyerBooksPage/BuyerBooks";
 import ProfilePage from "./components/pages/buyer/profile/ProfilePage";
 import ChangePasswordPage from "./components/pages/buyer/profile/ChangePasswordPage";
+import DashboardPage from "./components/pages/seller/Dashboard/DashboardPage";
 import Footer from "./components/common/Footer";
+import SellerNavBar from "./components/common/SellerNavBar";
+import { MyBookPage } from "./components/pages/seller/MyBook/MyBookPage";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const currentRole = useSelector((state) => state.auth.user?.role[0]);
 
   // Check for token to maintain auth state
   if (localStorage.authToken) {
@@ -40,7 +44,8 @@ function App() {
 
   return (
     <Router>
-      <NavBar />
+      {currentRole == "seller" ? <SellerNavBar /> : <NavBar />}
+
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
@@ -49,13 +54,18 @@ function App() {
         <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
           <Route path="/profilePage" element={<ProfilePage />} />
         </Route>
-
         <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
           <Route path="/changePassword" element={<ChangePasswordPage />} />
         </Route>
-
         <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
           <Route path="/buyerBooks" element={<BuyerBooks />} />
+        </Route>
+        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+          <Route path="/dashboardPage" element={<DashboardPage />} />
+        </Route>
+
+        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+          <Route path="/myBookPage" element={<MyBookPage />} />
         </Route>
       </Routes>
       <Footer />

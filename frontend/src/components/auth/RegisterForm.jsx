@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import { registerUser } from "../../action/authAction";
 import { useNavigate } from "react-router-dom";
+import CommonToast from "../common/CommonToast";
 
 const Register = () => {
   const dispatch = useDispatch();
@@ -41,20 +42,33 @@ const Register = () => {
     },
   });
 
-  // Show error snackbar when there's an error in registration
-  const [openSnackbar, setOpenSnackbar] = React.useState(false);
+  // For snack bar Start
 
-  useEffect(() => {
-    if (error) {
-      setOpenSnackbar(true); // Open snackbar if there’s an error
-    }
-  }, [error]);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
+  // For snack Bar end
 
   const onSubmit = async (data) => {
     try {
       await dispatch(registerUser(data)).unwrap(); // use unwrap if using createAsyncThunk
 
-      navigate("/login"); // for example
+      showSnackbar("Registration successful!", "success"); // 👈 show Toast first
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (err) {
       // Handle known validation errors from API
 
@@ -84,11 +98,6 @@ const Register = () => {
     }
   };
 
-  // Close the error snackbar
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
-
   return (
     <Container maxWidth="xs">
       <Box
@@ -97,6 +106,8 @@ const Register = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
+          minHeight: "76vh",
+          pb: 2,
         }}
       >
         <Paper
@@ -221,17 +232,6 @@ const Register = () => {
             </Button>
           </Box>
 
-          {/* Error Snackbar */}
-          <Snackbar
-            open={openSnackbar}
-            autoHideDuration={6000}
-            onClose={handleCloseSnackbar}
-          >
-            <Alert onClose={handleCloseSnackbar} severity="error">
-              {error?.message || "An error occurred during registration."}
-            </Alert>
-          </Snackbar>
-
           <Typography variant="body2" align="center" sx={{ marginTop: 2 }}>
             Already have an account?{" "}
             <Link onClick={() => navigate("/login")} sx={{ cursor: "pointer" }}>
@@ -240,6 +240,13 @@ const Register = () => {
           </Typography>
         </Paper>
       </Box>
+
+      <CommonToast
+        open={openSnackbar}
+        message={snackbarMessage}
+        severity={snackbarSeverity}
+        onClose={handleCloseSnackbar}
+      />
     </Container>
   );
 };

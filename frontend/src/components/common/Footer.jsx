@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Typography, Stack, IconButton } from "@mui/material";
 import { Facebook, Twitter, Instagram, LinkedIn } from "@mui/icons-material";
+import { useSelector } from "react-redux";
 
 const Footer = () => {
+  const currentRole = useSelector((state) => state.auth.user?.role[0]);
+
   return (
     <Box
       sx={{
-        bgcolor: "#69a69e",
+        bgcolor: currentRole == "seller" ? "#586ba4" : "#69a69e",
         color: "white",
         py: 4,
       }}
@@ -19,7 +22,7 @@ const Footer = () => {
         sx={{ maxWidth: "1200px", mx: "auto", px: 2 }}
       >
         {/* Left Side - Title */}
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="h6">
           © {new Date().getFullYear()} Swift Ebook
         </Typography>
 
