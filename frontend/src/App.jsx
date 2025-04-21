@@ -18,6 +18,7 @@ import DashboardPage from "./components/pages/seller/Dashboard/DashboardPage";
 import Footer from "./components/common/Footer";
 import SellerNavBar from "./components/common/SellerNavBar";
 import { MyBookPage } from "./components/pages/seller/MyBook/MyBookPage";
+import { DiscountPage } from "./components/pages/seller/Discount/DiscountPage";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -45,28 +46,32 @@ function App() {
   return (
     <Router>
       {currentRole == "seller" ? <SellerNavBar /> : <NavBar />}
-
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registerForm" element={<RegisterForm />} />
         <Route path="/bookDetail" element={<BookDetail />} />
-        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route path="/profilePage" element={<ProfilePage />} />
-        </Route>
-        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route path="/changePassword" element={<ChangePasswordPage />} />
-        </Route>
-        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route path="/buyerBooks" element={<BuyerBooks />} />
-        </Route>
-        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route path="/dashboardPage" element={<DashboardPage />} />
-        </Route>
 
-        <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
-          <Route path="/myBookPage" element={<MyBookPage />} />
-        </Route>
+        {currentRole == "seller" ? (
+          <>
+            <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+              <Route path="/dashboardPage" element={<DashboardPage />} />
+
+              <Route path="/myBookPage" element={<MyBookPage />} />
+              <Route path="/discountPage" element={<DiscountPage />} />
+            </Route>
+          </>
+        ) : (
+          <>
+            <Route element={<PrivateRoute isAuthenticated={isAuthenticated} />}>
+              <Route path="/profilePage" element={<ProfilePage />} />
+
+              <Route path="/changePassword" element={<ChangePasswordPage />} />
+
+              <Route path="/buyerBooks" element={<BuyerBooks />} />
+            </Route>
+          </>
+        )}
       </Routes>
       <Footer />
     </Router>
