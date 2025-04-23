@@ -6,6 +6,7 @@ import { validateBook } from '../../validator/book.validator.js'
 import Book from '../../models/Book.module.js'
 import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
+import { categoriesWithGenres } from '../../config/categoriesGenres.js'
 
 // Utility: reusable search filter builder
 function getSearchFilter(query) {
@@ -80,6 +81,7 @@ router.get(
 
     try {
       const books = await Book.find({ author: req.user.id, ...searchFilter })
+        .populate('author', 'name email')
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
@@ -103,23 +105,17 @@ router.get(
   }
 )
 
-//@route  GET /api/book/genres
-//@desc   Get all unique genres (categories)
-//@access Public
-router.get('/genres', async (req, res) => {
-  try {
-    const genres = await Book.distinct('category')
-    res.status(200).json({ message: 'Genres retrieved', genres })
-  } catch (error) {
-    console.error('Error fetching genres:', error)
-    res.status(500).json({ message: 'Server error', error: error.message })
-  }
+router.get('/categories-and-genres', (req, res) => {
+  res.status(200).json({
+    message: 'Category and genre options',
+    data: categoriesWithGenres,
+  })
 })
 
-//@route  GET /api/book/genre/:category
-//@desc   Get books by genre (category)
+//@route  GET /api/book/category/:category
+//@desc   Get books by category
 //@access Public
-router.get('/genre/:category', async (req, res) => {
+router.get('/category/:category', async (req, res) => {
   const category = req.params.category
   const page = parseInt(req.query.page) || 1
   const limit = parseInt(req.query.limit) || 10
@@ -136,9 +132,56 @@ router.get('/genre/:category', async (req, res) => {
       category: { $regex: new RegExp(`^${category}$`, 'i') },
     })
 
-    res.status(200).json({ message: 'Books retrieved by genre', books, total })
+    res
+      .status(200)
+      .json({ message: 'Books retrieved by categories', books, total })
   } catch (error) {
-    console.error('Error fetching books by genre:', error)
+    console.error('Error fetching books by categories:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+
+//@route  GET /api/book/new
+//@desc   Get newly added books (sorted by createdAt)
+//@access Public
+router.get('/new', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 10
+
+  try {
+    const books = await Book.find()
+      .sort({ createdAt: -1 }) // Most recent first
+      .limit(limit)
+      .populate('author', 'name email') // Include author details
+
+    res.status(200).json({
+      message: 'Newly added books retrieved',
+      books,
+    })
+  } catch (error) {
+    console.error('Error fetching newly added books:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+
+//@route  GET /api/book/top-rated
+//@desc   Get top-rated books
+//@access Public
+router.get('/top-rated', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 10
+
+  try {
+    const books = await Book.find()
+      .populate('author', 'name email')
+      .sort({ averageRating: -1, createdAt: -1 })
+      .limit(limit)
+      .select('title averageRating category price coverImage')
+
+    res.status(200).json({
+      message: 'Top rated books retrieved',
+      books,
+    })
+  } catch (error) {
+    console.error('Error fetching top rated books:', error)
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 })
@@ -154,7 +197,7 @@ router.get('/:id', async (req, res) => {
   }
 
   try {
-    const book = await Book.findById(bookId)
+    const book = await Book.findById(bookId).populate('author', 'name email')
     if (!book) {
       return res.status(404).json({ message: 'Book not found' })
     }
@@ -187,6 +230,7 @@ router.get('/', async (req, res) => {
 
   try {
     const books = await Book.find()
+      .populate('author', 'name email')
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 })
@@ -220,6 +264,7 @@ router.post(
         title,
         price,
         category,
+        genres,
         description,
         filePath,
         publisher,
@@ -232,6 +277,7 @@ router.post(
         author: req.user.id,
         price,
         category,
+        genres,
         description,
         publisher,
         isbn,
