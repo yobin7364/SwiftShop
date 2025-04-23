@@ -12,13 +12,12 @@ import colors from "../pages/buyer/styles/colors";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../../redux/authSlice";
-
 import LoginIcon from "@mui/icons-material/Login";
 import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
 import { AccountCircle } from "@mui/icons-material";
 import { Menu, MenuItem } from "@mui/material";
 import { searchBooks } from "../../action/BookAction";
+import { SellerDrawer } from "./SellerDrawer";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -60,29 +59,11 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-export default function NavBar() {
+export default function SellerNavBar() {
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector((state) => state.auth);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  // Open the menu
-  const handleMenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  // Close the menu
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    dispatch(logout());
-    handleClose();
-    navigate("/login");
-  };
 
   return (
     <Box
@@ -91,10 +72,10 @@ export default function NavBar() {
         //marginBottom: "40px"
       }}
     >
-      <AppBar position="static" sx={{ backgroundColor: colors.primary }}>
+      <AppBar position="static" sx={{ backgroundColor: colors.subPrimary }}>
         <Toolbar
           sx={{
-            backgroundColor: colors.primary,
+            backgroundColor: colors.subPrimary,
             maxWidth: "1200px", // Set max width
             minWidth: "800px", // Set min width
             width: "100%",
@@ -102,12 +83,14 @@ export default function NavBar() {
             px: 2, // Padding on both sides to prevent elements from touching edges
           }}
         >
+          <SellerDrawer />
+
           <Typography
             variant="h6"
             noWrap
             component="div"
             sx={{ display: { xs: "none", sm: "block", cursor: "pointer" } }}
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboardPage")}
           >
             Swift Ebook
           </Typography>
@@ -129,85 +112,6 @@ export default function NavBar() {
             />
           </Search>
           <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: { xs: "none", md: "flex" } }}>
-            {isAuthenticated ? (
-              <>
-                <div style={{ marginLeft: "auto" }}>
-                  <IconButton
-                    edge="end"
-                    color="inherit"
-                    onClick={handleMenuClick}
-                    aria-controls="profile-menu"
-                    aria-haspopup="true"
-                    sx={{ display: "flex", alignItems: "center" }} // Align items horizontally
-                  >
-                    <AccountCircle sx={{ marginRight: 1 }} />{" "}
-                    {/* Adds space between the icon and text */}
-                    <Typography variant="h6" sx={{ marginLeft: 0 }}>
-                      Profile
-                    </Typography>
-                  </IconButton>
-
-                  {/* Profile Menu */}
-                  <Menu
-                    id="profile-menu"
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleClose}
-                  >
-                    <MenuItem
-                      onClick={() => {
-                        navigate("/profilePage");
-                        handleClose();
-                      }}
-                    >
-                      Profile
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => {
-                        navigate("/buyerBooks");
-                        handleClose();
-                      }}
-                    >
-                      Your Book
-                    </MenuItem>
-                    <MenuItem onClick={handleLogout}>Logout</MenuItem>
-                  </Menu>
-                </div>
-              </>
-            ) : (
-              <>
-                <Button
-                  color="inherit"
-                  onClick={() => navigate("/login")}
-                  startIcon={<LoginIcon />}
-                  sx={{ mr: 2 }} // Adding right margin for spacing
-                >
-                  Login
-                </Button>
-                <Button
-                  color="inherit"
-                  onClick={() => navigate("/registerForm")}
-                  startIcon={<AppRegistrationIcon />}
-                  sx={{ mr: 2 }} // Adding right margin for spacing
-                >
-                  Register
-                </Button>
-              </>
-            )}
-          </Box>
-          {/* <Box sx={{ display: { xs: "flex", md: "none" } }}>
-            <IconButton
-              size="large"
-              aria-label="show more"
-              aria-controls={mobileMenuId}
-              aria-haspopup="true"
-              onClick={handleMobileMenuOpen}
-              color="inherit"
-            >
-              <MoreIcon />
-            </IconButton>
-          </Box> */}
         </Toolbar>
       </AppBar>
     </Box>

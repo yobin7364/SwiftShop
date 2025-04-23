@@ -150,6 +150,7 @@ const EditorsChoiceEbooks = () => {
         minWidth: "800px", // Your min width
         margin: "auto",
         padding: "20px 0",
+        paddingBottom: 10,
       }}
     >
       <Box
