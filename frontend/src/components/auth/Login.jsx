@@ -43,8 +43,6 @@ const Login = () => {
       // Attempt to login and unwrap the result (this will throw an error if rejected)
       const decoded = await dispatch(loginUser(data)).unwrap();
 
-      console.log("decoded", decoded);
-
       // set current user
       dispatch(setCurrentUser(decoded));
 
