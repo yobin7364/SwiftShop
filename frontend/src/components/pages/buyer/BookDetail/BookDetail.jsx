@@ -8,16 +8,12 @@ import {
   Grid,
   Divider,
 } from "@mui/material";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
+import RatingsAndReviews from "./RatingsAndReviews";
 
 const BookDetail = () => {
-  const [isInStock, setIsInStock] = useState(true); // initial stock status
-
   return (
-    <Box p={4} className="main-container">
+    <Box p={4} className="main-container" sx={{ paddingTop: 10 }}>
       <Grid container spacing={4}>
         {/* Book Cover */}
         <Grid item xs={12} md={4}>
@@ -36,39 +32,26 @@ const BookDetail = () => {
           <Typography variant="subtitle1" mt={1}>
             By <strong>James Islington</strong>
           </Typography>
-          <Box display="flex" alignItems="center" mt={1}>
-            {isInStock ? (
-              <>
-                <CheckCircleIcon
-                  fontSize="small"
-                  color="success"
-                  style={{ marginRight: 4 }}
-                />
-                <Typography variant="body2" color="success.main">
-                  In Stock
-                </Typography>
-              </>
-            ) : (
-              <>
-                <CancelIcon
-                  fontSize="small"
-                  color="error"
-                  style={{ marginRight: 4 }}
-                />
-                <Typography variant="body2" color="error.main">
-                  Not in Stock
-                </Typography>
-              </>
-            )}
-          </Box>
 
-          <Rating
-            name="book-rating"
-            value={4.5}
-            precision={0.5}
-            readOnly
-            sx={{ mt: 1 }}
-          />
+          <Box
+            mt={2}
+            display="flex"
+            alignItems="center"
+            sx={{ width: "100%" }}
+            gap={2}
+          >
+            <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="body2" fontWeight="bold">
+                4.5
+              </Typography>
+              <Rating name="book-rating" value={4.5} precision={0.5} readOnly />
+            </Box>
+
+            {/* Right side: Total Reviews */}
+            <Typography variant="body2" color="secondary">
+              32 Reviews
+            </Typography>
+          </Box>
 
           <Typography variant="h5" mt={2} color="primary.main">
             $25.00{" "}
@@ -82,9 +65,6 @@ const BookDetail = () => {
           </Typography>
 
           <Box mt={2} display="flex" gap={2}>
-            <Button variant="outlined" startIcon={<ShoppingCartIcon />}>
-              Add to Cart
-            </Button>
             <Button variant="contained" color="primary">
               Buy Now
             </Button>
@@ -137,6 +117,9 @@ const BookDetail = () => {
           captivating storytelling has earned him a dedicated following.
         </Typography>
       </Box>
+      <Divider sx={{ my: 2 }} /> {/* Divider between sections */}
+      {/* Ratings and Reviews Section */}
+      <RatingsAndReviews />
     </Box>
   );
 };
