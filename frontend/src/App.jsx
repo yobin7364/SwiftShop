@@ -19,6 +19,7 @@ import Footer from "./components/common/Footer";
 import SellerNavBar from "./components/common/SellerNavBar";
 import { MyBookPage } from "./components/pages/seller/MyBook/MyBookPage";
 import { DiscountPage } from "./components/pages/seller/Discount/DiscountPage";
+import SellerRatingsPage from "./components/pages/seller/RatingsAndReviews/RatingsAndReviews";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -59,6 +60,13 @@ function App() {
 
               <Route path="/myBookPage" element={<MyBookPage />} />
               <Route path="/discountPage" element={<DiscountPage />} />
+              <Route
+                path="/sellerRatingsPage"
+                element={<SellerRatingsPage />}
+              />
+              <Route path="/profilePage" element={<ProfilePage />} />
+
+              <Route path="/changePassword" element={<ChangePasswordPage />} />
             </Route>
           </>
         ) : (

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -7,18 +8,36 @@ import {
   Chip,
   Grid,
   Divider,
+  CircularProgress,
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import RatingsAndReviews from "./RatingsAndReviews";
 
 const BookDetail = () => {
+  const navigate = useNavigate();
+  const [paymentStatus, setPaymentStatus] = useState("idle"); // idle | processing | success
+
+  const handleBuyNow = () => {
+    setPaymentStatus("processing");
+
+    // Simulate payment processing
+    setTimeout(() => {
+      setPaymentStatus("success");
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        navigate("/");
+      }, 1000); // 1 second after showing success
+    }, 2000); // 2 seconds processing
+  };
+
   return (
     <Box p={4} className="main-container" sx={{ paddingTop: 10 }}>
       <Grid container spacing={4}>
         {/* Book Cover */}
         <Grid item xs={12} md={4}>
           <img
-            src="https://plus.unsplash.com/premium_photo-1682125773446-259ce64f9dd7?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" // Replace with actual image path
+            src="https://plus.unsplash.com/premium_photo-1682125773446-259ce64f9dd7?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
             alt="The Light of All That Falls"
             style={{ width: "100%", borderRadius: 8 }}
           />
@@ -64,10 +83,45 @@ const BookDetail = () => {
             </Typography>
           </Typography>
 
-          <Box mt={2} display="flex" gap={2}>
-            <Button variant="contained" color="primary">
-              Buy Now
-            </Button>
+          {/* Button and Success Message */}
+          <Box mt={2} display="flex" flexDirection="column" gap={1}>
+            <Box position="relative" display="inline-flex">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleBuyNow}
+                disabled={paymentStatus !== "idle"}
+                sx={{ minWidth: 150 }} // Make button minimum width so spinner doesn't shrink
+              >
+                {paymentStatus === "processing" ? "Processing..." : "Buy Now"}
+              </Button>
+
+              {/* Spinner when processing */}
+              {paymentStatus === "processing" && (
+                <CircularProgress
+                  size={24}
+                  sx={{
+                    color: "white",
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    marginTop: "-12px",
+                    marginLeft: "-12px",
+                  }}
+                />
+              )}
+            </Box>
+
+            {paymentStatus === "success" && (
+              <Typography
+                variant="body2"
+                color="success.main"
+                fontWeight="bold"
+                sx={{ mt: 1 }}
+              >
+                Payment Successful!
+              </Typography>
+            )}
           </Box>
 
           <Box mt={2}>
@@ -76,7 +130,8 @@ const BookDetail = () => {
           </Box>
         </Grid>
       </Grid>
-      {/* Description Section */}
+
+      {/* Other Sections (Description, Details, About the Author, Reviews) */}
       <Box mt={3}>
         <Typography variant="h6" color="text.primary" gutterBottom>
           Description
@@ -86,8 +141,9 @@ const BookDetail = () => {
           points to give the reader an overview of what to expect.
         </Typography>
       </Box>
-      <Divider sx={{ my: 2 }} /> {/* Divider between sections */}
-      {/* Details Section */}
+
+      <Divider sx={{ my: 2 }} />
+
       <Box mt={3}>
         <Typography variant="h6" color="text.primary" gutterBottom>
           Details
@@ -105,8 +161,9 @@ const BookDetail = () => {
           <strong>Release Date:</strong> January 2025
         </Typography>
       </Box>
-      <Divider sx={{ my: 2 }} /> {/* Divider between sections */}
-      {/* About the Author Section */}
+
+      <Divider sx={{ my: 2 }} />
+
       <Box mt={3}>
         <Typography variant="h6" color="text.primary" gutterBottom>
           About the Author
@@ -117,8 +174,9 @@ const BookDetail = () => {
           captivating storytelling has earned him a dedicated following.
         </Typography>
       </Box>
-      <Divider sx={{ my: 2 }} /> {/* Divider between sections */}
-      {/* Ratings and Reviews Section */}
+
+      <Divider sx={{ my: 2 }} />
+
       <RatingsAndReviews />
     </Box>
   );

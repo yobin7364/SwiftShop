@@ -43,7 +43,7 @@ export const SellerDrawer = () => {
     {
       text: "Ratings & Reviews",
       icon: <RateReviewIcon />,
-      toGo: "/ratingPage",
+      toGo: "/sellerRatingsPage",
     },
     { text: "Analytics", icon: <InsightsIcon />, toGo: "/analyticsPage" },
     { text: "Profile", icon: <AccountCircleIcon />, toGo: "/profilePage" },

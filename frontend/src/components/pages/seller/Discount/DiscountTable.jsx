@@ -10,9 +10,11 @@ import {
   Paper,
   IconButton,
   TablePagination,
+  Typography,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import { Edit, Delete, Visibility } from "@mui/icons-material";
+import DiscountEdit from "./DiscountEdit";
+import DiscountDelete from "./DiscountDelete";
 
 export default function DiscountTable() {
   const initialBooks = [
@@ -29,6 +31,15 @@ export default function DiscountTable() {
   const [books, setBooks] = useState(initialBooks);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [viewBook, setViewBook] = useState(null);
+
+  const [editDiscount, setEditDiscount] = useState(null);
+  const [deleteDiscount, setDeleteDiscount] = useState(null);
+
+  // on clicking view icon
+  const handleView = (book) => {
+    setViewBook(book);
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -39,8 +50,18 @@ export default function DiscountTable() {
     setPage(0);
   };
 
+  const handleEditDiscount = (updatedDiscount) => {
+    setBooks(
+      books.map((b) => (b.id === updatedDiscount.id ? updatedDiscount : b))
+    );
+    setEditDiscount(null); // Close the Edit popup after saving
+  };
+
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3, minHeight: "78vh" }}>
+      <Typography variant="h4" mb={3}>
+        Discounts
+      </Typography>
       <TableContainer component={Paper}>
         <Table>
           <TableHead sx={{ bgcolor: "#e0e0e0" }}>
@@ -75,11 +96,23 @@ export default function DiscountTable() {
                     ${(book.price * (1 - book.discount / 100)).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <IconButton color="primary">
-                      <EditIcon />
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleView(book)}
+                    >
+                      <Visibility />
                     </IconButton>
-                    <IconButton color="error">
-                      <DeleteIcon />
+                    <IconButton
+                      color="primary"
+                      onClick={() => setEditDiscount(book)}
+                    >
+                      <Edit />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => setDeleteDiscount(book)}
+                    >
+                      <Delete />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -96,6 +129,22 @@ export default function DiscountTable() {
           rowsPerPageOptions={[5, 10, 25]}
         />
       </TableContainer>
+
+      <DiscountEdit
+        open={!!editDiscount}
+        onClose={() => setEditDiscount(null)}
+        book={editDiscount}
+        onEdit={handleEditDiscount}
+      />
+
+      <DiscountDelete
+        open={!!deleteDiscount}
+        onClose={() => setDeleteDiscount(null)}
+        book={deleteDiscount}
+        onDelete={(id) => {
+          setBooks(books.filter((b) => b.id !== id));
+        }}
+      />
     </Box>
   );
 }
