@@ -1,5 +1,13 @@
 export const categoriesWithGenres = {
-  Fiction: ['Fantasy', 'Mystery', 'Romance', 'Thriller', 'Horror', 'Adventure'],
+  Fiction: [
+    'Fantasy',
+    'Mystery',
+    'Romance',
+    'Thriller',
+    'Horror',
+    'Adventure',
+    'Psychological',
+  ],
   'Non-Fiction': ['Biography', 'Self-Help', 'Politics', 'History'],
   Academic: ['Mathematics', 'Physics', 'Psychology', 'Law'],
   'Technical / Professional': ['Programming', 'Cybersecurity', 'AI'],

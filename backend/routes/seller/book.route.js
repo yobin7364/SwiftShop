@@ -8,17 +8,102 @@ import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
 import { categoriesWithGenres } from '../../config/categoriesGenres.js'
 
-// Utility: reusable search filter builder
-function getSearchFilter(query) {
+//@route  GET /api/book/search
+//@desc   Search books by title, description, category, or author name
+//@access Public
+router.get('/search', async (req, res) => {
+  const query = req.query.query || ''
+  const page = Math.max(1, parseInt(req.query.page) || 1) // ✅ Always at least page 1
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
   const searchRegex = new RegExp(query, 'i')
-  return {
-    $or: [
-      { title: { $regex: searchRegex } },
-      { description: { $regex: searchRegex } },
-      { category: { $regex: searchRegex } },
-    ],
+
+  try {
+    // Get matched books (with author lookup)
+    const booksAggregation = await Book.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'author',
+          foreignField: '_id',
+          as: 'authorDetails',
+        },
+      },
+      { $unwind: '$authorDetails' },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          category: 1,
+          genres: 1,
+          price: 1,
+          averageRating: 1,
+          reviews: 1,
+          file: 1,
+          createdAt: 1,
+          authorDetails: {
+            _id: 1,
+            name: 1,
+            email: 1,
+          },
+        },
+      },
+      {
+        $match: {
+          $or: [
+            { title: { $regex: searchRegex } },
+            { description: { $regex: searchRegex } },
+            { category: { $regex: searchRegex } },
+            { genres: { $regex: searchRegex } },
+            { 'authorDetails.name': { $regex: searchRegex } },
+          ],
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ])
+
+    // Get total matching books
+    const totalAggregation = await Book.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'author',
+          foreignField: '_id',
+          as: 'authorDetails',
+        },
+      },
+      { $unwind: '$authorDetails' },
+      {
+        $match: {
+          $or: [
+            { title: { $regex: searchRegex } },
+            { description: { $regex: searchRegex } },
+            { category: { $regex: searchRegex } },
+            { 'authorDetails.name': { $regex: searchRegex } },
+          ],
+        },
+      },
+      { $count: 'total' },
+    ])
+
+    const total = totalAggregation.length > 0 ? totalAggregation[0].total : 0
+    const totalPages = Math.ceil(total / limit)
+
+    res.status(200).json({
+      message: 'Books retrieved successfully',
+      books: booksAggregation, // Your paginated books
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages: totalPages,
+    })
+  } catch (error) {
+    console.error('Error fetching books:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
   }
-}
+})
 
 // Utility: role-based authorization middleware
 function authorizeRoles(...allowedRoles) {
@@ -163,6 +248,33 @@ router.get('/new', async (req, res) => {
   }
 })
 
+//@route  GET /api/book/free
+//@desc   Get free books (price = 0)
+//@access Public
+router.get('/free', async (req, res) => {
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 10
+
+  try {
+    const books = await Book.find({ price: 0 })
+      .populate('author', 'name email')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    const total = await Book.countDocuments({ price: 0 })
+
+    res.status(200).json({
+      message: 'Free books retrieved successfully',
+      books,
+      total,
+    })
+  } catch (error) {
+    console.error('Error fetching free books:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+
 //@route  GET /api/book/top-rated
 //@desc   Get top-rated books
 //@access Public
@@ -236,10 +348,16 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 })
 
     const total = await Book.countDocuments()
+    const totalPages = Math.ceil(total / limit)
 
-    res
-      .status(200)
-      .json({ message: 'Books retrieved successfully', books, total })
+    res.status(200).json({
+      message: 'Books retrieved successfully',
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages: totalPages,
+    })
   } catch (error) {
     console.error('Error fetching books:', error)
     res.status(500).json({ message: 'Server error', error: error.message })

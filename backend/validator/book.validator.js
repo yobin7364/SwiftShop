@@ -7,10 +7,10 @@ export const validateBook = (data) => {
     title: Joi.string().trim().required().messages({
       'string.empty': 'Title is required.',
     }),
-    price: Joi.number().positive().precision(2).required().messages({
+    price: Joi.number().min(0).precision(2).required().messages({
       'number.base': 'Price must be a valid number.',
-      'number.positive': 'Price must be greater than zero.',
-      'number.empty': 'Price is required.',
+      'number.min': 'Price cannot be negative.',
+      'any.required': 'Price is required.',
     }),
     category: Joi.string()
       .valid(...validCategories)
