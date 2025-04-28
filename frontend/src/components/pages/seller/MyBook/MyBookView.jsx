@@ -9,6 +9,7 @@ import {
   Box,
   Stack,
   IconButton,
+  Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -50,14 +51,25 @@ export default function MyBookView({ open, onClose, book }) {
               <strong>ISBN:</strong> {book.ISBN}
             </Typography>
             <Typography>
-              <strong>Release Date:</strong> {book.releaseDate}
+              <strong>Release Date & Time:</strong>{" "}
+              {book.releaseDateTime
+                ? new Date(book.releaseDateTime).toLocaleString()
+                : "-"}
             </Typography>
-            <Typography>
-              <strong>Tags:</strong> {book.tags}
-            </Typography>
-            <Typography>
-              <strong>Language:</strong> {book.language}
-            </Typography>
+            <Box>
+              <strong>Tags:</strong>{" "}
+              {Array.isArray(book.tags) && book.tags.length > 0 ? (
+                <Stack direction="row" spacing={1} flexWrap="wrap" mt={1}>
+                  {book.tags.map((tag, index) => (
+                    <Chip key={index} label={tag} size="small" />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body2" color="text.secondary" mt={1}>
+                  No tags
+                </Typography>
+              )}
+            </Box>
             <Typography>
               <strong>Description:</strong> {book.description}
             </Typography>
@@ -70,6 +82,11 @@ export default function MyBookView({ open, onClose, book }) {
           </Stack>
         </Box>
       </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} variant="contained">
+          Close
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

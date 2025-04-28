@@ -12,10 +12,12 @@ import {
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import RatingsAndReviews from "./RatingsAndReviews";
+import { useSelector } from "react-redux";
 
 const BookDetail = () => {
   const navigate = useNavigate();
   const [paymentStatus, setPaymentStatus] = useState("idle"); // idle | processing | success
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const handleBuyNow = () => {
     setPaymentStatus("processing");
@@ -90,7 +92,7 @@ const BookDetail = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleBuyNow}
-                disabled={paymentStatus !== "idle"}
+                disabled={!isAuthenticated || paymentStatus !== "idle"}
                 sx={{ minWidth: 150 }} // Make button minimum width so spinner doesn't shrink
               >
                 {paymentStatus === "processing" ? "Processing..." : "Buy Now"}

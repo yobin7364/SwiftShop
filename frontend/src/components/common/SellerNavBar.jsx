@@ -94,23 +94,7 @@ export default function SellerNavBar() {
           >
             Swift Ebook
           </Typography>
-          <Search>
-            <SearchIconWrapper>
-              <SearchIcon />
-            </SearchIconWrapper>
-            <StyledInputBase
-              placeholder="Search for eBooks..."
-              inputProps={{ "aria-label": "search" }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !!searchTerm) {
-                  dispatch(searchBooks({ query: searchTerm, page: 1 }));
-                  //navigate("/searchResults?q=" + searchTerm); // optional route change
-                }
-              }}
-            />
-          </Search>
+
           <Box sx={{ flexGrow: 1 }} />
         </Toolbar>
       </AppBar>

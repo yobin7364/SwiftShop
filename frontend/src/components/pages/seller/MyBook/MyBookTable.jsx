@@ -17,20 +17,74 @@ import MyBookView from "./MyBookView";
 import MyBookEdit from "./MyBookEdit";
 import MyBookDelete from "./MyBookDelete";
 
-const initialBooks = Array.from({ length: 10 }, (_, index) => ({
-  id: index + 1,
-  title: `Book Title ${index + 1}`,
-  price: 20 + index,
-  category: "Fantasy",
-  publisher: "Publisher X",
-  ISBN: `978-12345678${index}`,
-  releaseDate: `2025-01-${(index + 1).toString().padStart(2, "0")}`,
-  tags: "Adventure, Action",
-  language: "English",
-  description: "Sample description for book...",
-  coverImage: `https://example.com/cover${index + 1}.jpg`,
-  filePath: `https://example.com/book${index + 1}.pdf`,
-}));
+// Updated initialBooks
+const initialBooks = [
+  {
+    id: 1,
+    title: "The Time Traveler's Guide",
+    price: 25,
+    category: "Science Fiction",
+    publisher: "Time Press",
+    ISBN: "978-123456780",
+    releaseDateTime: "2025-04-30T10:00",
+    tags: ["Adventure", "Time Travel"],
+    description: "Explore time like never before.",
+    coverImage: "https://example.com/cover1.jpg",
+    filePath: "https://example.com/book1.pdf",
+  },
+  {
+    id: 2,
+    title: "Mystery of the Old Castle",
+    price: 30,
+    category: "Mystery",
+    publisher: "Castle Books",
+    ISBN: "978-123456781",
+    releaseDateTime: "2025-05-05T14:30",
+    tags: ["Mystery", "Thriller"],
+    description: "Unravel the secrets of the old castle.",
+    coverImage: "https://example.com/cover2.jpg",
+    filePath: "https://example.com/book2.pdf",
+  },
+  {
+    id: 3,
+    title: "Adventures in Space",
+    price: 28,
+    category: "Fantasy",
+    publisher: "Galaxy Publishers",
+    ISBN: "978-123456782",
+    releaseDateTime: "2025-06-01T09:15",
+    tags: ["Space", "Adventure"],
+    description: "Journey across the stars.",
+    coverImage: "https://example.com/cover3.jpg",
+    filePath: "https://example.com/book3.pdf",
+  },
+  {
+    id: 4,
+    title: "The Art of Cooking",
+    price: 35,
+    category: "Non-Fiction",
+    publisher: "Chef's Choice",
+    ISBN: "978-123456783",
+    releaseDateTime: "2025-07-10T12:45",
+    tags: ["Cooking", "Lifestyle"],
+    description: "Master the art of fine cooking.",
+    coverImage: "https://example.com/cover4.jpg",
+    filePath: "https://example.com/book4.pdf",
+  },
+  {
+    id: 5,
+    title: "History Rewritten",
+    price: 22,
+    category: "History",
+    publisher: "History House",
+    ISBN: "978-123456784",
+    releaseDateTime: "2025-08-20T16:00",
+    tags: ["History", "Culture"],
+    description: "A new perspective on world events.",
+    coverImage: "https://example.com/cover5.jpg",
+    filePath: "https://example.com/book5.pdf",
+  },
+];
 
 export default function MyBookTable() {
   const [books, setBooks] = useState(initialBooks);
@@ -40,7 +94,6 @@ export default function MyBookTable() {
   const [editBook, setEditBook] = useState(null);
   const [deleteBook, setDeleteBook] = useState(null);
 
-  // on clicking view icon
   const handleView = (book) => {
     setViewBook(book);
   };
@@ -56,7 +109,12 @@ export default function MyBookTable() {
 
   const handleEditBook = (updatedBook) => {
     setBooks(books.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
-    setEditBook(null); // Close the Edit popup after saving
+    setEditBook(null);
+  };
+
+  const handleDeleteBook = (id) => {
+    setBooks(books.filter((b) => b.id !== id));
+    setDeleteBook(null);
   };
 
   return (
@@ -84,7 +142,7 @@ export default function MyBookTable() {
                 <strong>ISBN</strong>
               </TableCell>
               <TableCell>
-                <strong>Release Date</strong>
+                <strong>Release Date & Time</strong>
               </TableCell>
               <TableCell>
                 <strong>Actions</strong>
@@ -101,7 +159,11 @@ export default function MyBookTable() {
                   <TableCell>{book.category}</TableCell>
                   <TableCell>{book.publisher}</TableCell>
                   <TableCell>{book.ISBN}</TableCell>
-                  <TableCell>{book.releaseDate}</TableCell>
+                  <TableCell>
+                    {book.releaseDateTime
+                      ? new Date(book.releaseDateTime).toLocaleString()
+                      : "-"}
+                  </TableCell>
                   <TableCell>
                     <IconButton
                       color="primary"
@@ -136,6 +198,7 @@ export default function MyBookTable() {
           rowsPerPageOptions={[5, 10, 25]}
         />
       </TableContainer>
+
       <MyBookView
         open={!!viewBook}
         onClose={() => setViewBook(null)}
@@ -151,9 +214,7 @@ export default function MyBookTable() {
         open={!!deleteBook}
         onClose={() => setDeleteBook(null)}
         book={deleteBook}
-        onDelete={(id) => {
-          setBooks(books.filter((b) => b.id !== id));
-        }}
+        onDelete={handleDeleteBook}
       />
     </Box>
   );

@@ -15,7 +15,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
 export default function AddDiscount({ onAddDiscount }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,54 +23,44 @@ export default function AddDiscount({ onAddDiscount }) {
   const [selectedBook, setSelectedBook] = useState(null);
   const [discountPercent, setDiscountPercent] = useState("");
   const [finalPrice, setFinalPrice] = useState(null);
+  const [startDateTime, setStartDateTime] = useState("");
+  const [endDateTime, setEndDateTime] = useState("");
 
-  // 🔥 Sample books inside component
   const books = [
     {
       id: 1,
       title: "The Light of All That Falls",
       author: "James Islington",
       price: 30,
-      category: "Fantasy",
     },
     {
       id: 2,
       title: "The Silent Patient",
       author: "Alex Michaelides",
       price: 25,
-      category: "Thriller",
     },
-    {
-      id: 3,
-      title: "Atomic Habits",
-      author: "James Clear",
-      price: 20,
-      category: "Self-help",
-    },
+    { id: 3, title: "Atomic Habits", author: "James Clear", price: 20 },
     {
       id: 4,
       title: "Where the Crawdads Sing",
       author: "Delia Owens",
       price: 22,
-      category: "Mystery",
     },
-    {
-      id: 5,
-      title: "The Alchemist",
-      author: "Paulo Coelho",
-      price: 18,
-      category: "Adventure",
-    },
-    {
-      id: 6,
-      title: "Educated",
-      author: "Tara Westover",
-      price: 24,
-      category: "Biography",
-    },
+    { id: 5, title: "The Alchemist", author: "Paulo Coelho", price: 18 },
+    { id: 6, title: "Educated", author: "Tara Westover", price: 24 },
   ];
 
   const { handleSubmit, reset } = useForm();
+
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
@@ -89,21 +79,56 @@ export default function AddDiscount({ onAddDiscount }) {
     }
   };
 
+  const isValidDiscountPeriod = () => {
+    const now = new Date();
+    const start = new Date(startDateTime);
+    const end = new Date(endDateTime);
+    return start > now && end > start;
+  };
+
   const onSubmit = () => {
-    if (!selectedBook || discountPercent === "") return;
+    if (
+      !selectedBook ||
+      discountPercent === "" ||
+      !startDateTime ||
+      !endDateTime
+    )
+      return;
+
+    if (!isValidDiscountPeriod()) {
+      alert(
+        "Start Date/Time must be after now, and End Date/Time must be after Start Date/Time."
+      );
+      return;
+    }
 
     const discountData = {
       selectedBook,
       discountPercent,
       finalPrice,
+      startDateTime,
+      endDateTime,
     };
 
     onAddDiscount(discountData);
+
     reset();
     setSelectedBook(null);
     setDiscountPercent("");
     setFinalPrice(null);
+    setStartDateTime("");
+    setEndDateTime("");
     setOpen(false);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    reset();
+    setSelectedBook(null);
+    setDiscountPercent("");
+    setFinalPrice(null);
+    setStartDateTime("");
+    setEndDateTime("");
   };
 
   return (
@@ -150,7 +175,7 @@ export default function AddDiscount({ onAddDiscount }) {
           }}
         >
           Add Discount
-          <IconButton onClick={() => setOpen(false)} sx={{ color: "white" }}>
+          <IconButton onClick={() => handleClose()} sx={{ color: "white" }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -186,6 +211,30 @@ export default function AddDiscount({ onAddDiscount }) {
               inputProps={{ min: 0, max: 100 }}
             />
 
+            {/* Start Date & Time */}
+            <TextField
+              fullWidth
+              label="Start Date and Time"
+              type="datetime-local"
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
+              value={startDateTime}
+              onChange={(e) => setStartDateTime(e.target.value)}
+              inputProps={{ min: getCurrentDateTime() }}
+            />
+
+            {/* End Date & Time */}
+            <TextField
+              fullWidth
+              label="End Date and Time"
+              type="datetime-local"
+              margin="normal"
+              InputLabelProps={{ shrink: true }}
+              value={endDateTime}
+              onChange={(e) => setEndDateTime(e.target.value)}
+              inputProps={{ min: startDateTime || getCurrentDateTime() }}
+            />
+
             {/* Show Final Price */}
             {finalPrice !== null && (
               <Box mt={2}>
@@ -199,11 +248,16 @@ export default function AddDiscount({ onAddDiscount }) {
             )}
 
             <DialogActions sx={{ mt: 2 }}>
-              <Button onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={() => handleClose()}>Cancel</Button>
               <Button
                 type="submit"
                 variant="contained"
-                disabled={!selectedBook || discountPercent === ""}
+                disabled={
+                  !selectedBook ||
+                  discountPercent === "" ||
+                  !startDateTime ||
+                  !endDateTime
+                }
               >
                 Add Discount
               </Button>

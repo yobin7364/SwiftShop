@@ -12,34 +12,83 @@ import {
   TablePagination,
   Typography,
 } from "@mui/material";
-import { Edit, Delete, Visibility } from "@mui/icons-material";
+import { Edit, Delete } from "@mui/icons-material";
 import DiscountEdit from "./DiscountEdit";
 import DiscountDelete from "./DiscountDelete";
 
 export default function DiscountTable() {
   const initialBooks = [
-    { id: 1, title: "The Psychology of Money", price: 25, discount: 10 },
-    { id: 2, title: "Atomic Habits", price: 30, discount: 15 },
-    { id: 3, title: "Deep Work", price: 20, discount: 5 },
-    { id: 4, title: "Start With Why", price: 28, discount: 0 },
-    { id: 5, title: "The Alchemist", price: 22, discount: 20 },
-    { id: 6, title: "Thinking Fast and Slow", price: 32, discount: 12 },
-    { id: 7, title: "Grit", price: 27, discount: 8 },
-    { id: 8, title: "Dare to Lead", price: 24, discount: 10 },
+    {
+      id: 1,
+      title: "The Psychology of Money",
+      price: 25,
+      discount: 10,
+      startDateTime: "2025-05-01T10:00",
+      endDateTime: "2025-05-10T23:59",
+    },
+    {
+      id: 2,
+      title: "Atomic Habits",
+      price: 30,
+      discount: 15,
+      startDateTime: "2025-06-01T09:00",
+      endDateTime: "2025-06-05T22:00",
+    },
+    {
+      id: 3,
+      title: "Deep Work",
+      price: 20,
+      discount: 5,
+      startDateTime: "2025-07-01T08:00",
+      endDateTime: "2025-07-03T20:00",
+    },
+    {
+      id: 4,
+      title: "Start With Why",
+      price: 28,
+      discount: 0,
+      startDateTime: "2025-08-01T12:00",
+      endDateTime: "2025-08-02T18:00",
+    },
+    {
+      id: 5,
+      title: "The Alchemist",
+      price: 22,
+      discount: 20,
+      startDateTime: "2025-09-01T10:00",
+      endDateTime: "2025-09-05T23:00",
+    },
+    {
+      id: 6,
+      title: "Thinking Fast and Slow",
+      price: 32,
+      discount: 12,
+      startDateTime: "2025-10-01T09:00",
+      endDateTime: "2025-10-10T20:00",
+    },
+    {
+      id: 7,
+      title: "Grit",
+      price: 27,
+      discount: 8,
+      startDateTime: "2025-11-01T08:30",
+      endDateTime: "2025-11-05T19:00",
+    },
+    {
+      id: 8,
+      title: "Dare to Lead",
+      price: 24,
+      discount: 10,
+      startDateTime: "2025-12-01T07:00",
+      endDateTime: "2025-12-03T21:00",
+    },
   ];
 
   const [books, setBooks] = useState(initialBooks);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [viewBook, setViewBook] = useState(null);
-
   const [editDiscount, setEditDiscount] = useState(null);
   const [deleteDiscount, setDeleteDiscount] = useState(null);
-
-  // on clicking view icon
-  const handleView = (book) => {
-    setViewBook(book);
-  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -54,7 +103,7 @@ export default function DiscountTable() {
     setBooks(
       books.map((b) => (b.id === updatedDiscount.id ? updatedDiscount : b))
     );
-    setEditDiscount(null); // Close the Edit popup after saving
+    setEditDiscount(null);
   };
 
   return (
@@ -79,6 +128,12 @@ export default function DiscountTable() {
                 <strong>Discounted Price</strong>
               </TableCell>
               <TableCell>
+                <strong>Start Date & Time</strong>
+              </TableCell>
+              <TableCell>
+                <strong>End Date & Time</strong>
+              </TableCell>
+              <TableCell>
                 <strong>Actions</strong>
               </TableCell>
             </TableRow>
@@ -96,12 +151,12 @@ export default function DiscountTable() {
                     ${(book.price * (1 - book.discount / 100)).toFixed(2)}
                   </TableCell>
                   <TableCell>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleView(book)}
-                    >
-                      <Visibility />
-                    </IconButton>
+                    {new Date(book.startDateTime).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(book.endDateTime).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
                     <IconButton
                       color="primary"
                       onClick={() => setEditDiscount(book)}
@@ -130,6 +185,7 @@ export default function DiscountTable() {
         />
       </TableContainer>
 
+      {/* Discount Edit Popup */}
       <DiscountEdit
         open={!!editDiscount}
         onClose={() => setEditDiscount(null)}
@@ -137,6 +193,7 @@ export default function DiscountTable() {
         onEdit={handleEditDiscount}
       />
 
+      {/* Discount Delete Popup */}
       <DiscountDelete
         open={!!deleteDiscount}
         onClose={() => setDeleteDiscount(null)}

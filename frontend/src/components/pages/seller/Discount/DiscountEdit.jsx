@@ -19,22 +19,25 @@ export default function DiscountEdit({ open, onClose, book, onEdit }) {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm();
 
   const [finalPrice, setFinalPrice] = useState(null);
-
-  // Watch discount field changes
   const discountPercent = watch("discountPercent");
+  const startDateTime = watch("startDateTime");
+  const endDateTime = watch("endDateTime");
 
   useEffect(() => {
     if (book) {
       reset({
-        discountPercent: book.discountPercent || "",
+        discountPercent: book.discount || "",
+        startDateTime: book.startDateTime || "",
+        endDateTime: book.endDateTime || "",
       });
 
-      if (book.price && book.discountPercent) {
-        const discountedAmount = (book.price * book.discountPercent) / 100;
+      if (book.price && book.discount) {
+        const discountedAmount = (book.price * book.discount) / 100;
         const finalAmount = (book.price - discountedAmount).toFixed(2);
         setFinalPrice(finalAmount);
       } else {
@@ -52,10 +55,19 @@ export default function DiscountEdit({ open, onClose, book, onEdit }) {
   }, [discountPercent, book]);
 
   const onSubmit = (data) => {
+    const start = new Date(data.startDateTime);
+    const end = new Date(data.endDateTime);
+
+    if (end <= start) {
+      alert("End date and time must be after start date and time.");
+      return;
+    }
+
     const updatedDiscount = {
       ...book,
-      discountPercent: data.discountPercent,
-      finalPrice,
+      discount: parseFloat(data.discountPercent),
+      startDateTime: data.startDateTime,
+      endDateTime: data.endDateTime,
     };
 
     onEdit(updatedDiscount);
@@ -90,29 +102,25 @@ export default function DiscountEdit({ open, onClose, book, onEdit }) {
 
       <DialogContent dividers>
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 2 }}>
-          {/* Book Title (readonly display) */}
+          {/* Book Title (readonly) */}
           <TextField
             fullWidth
             label="Book Title"
             margin="normal"
             value={book.title}
-            InputProps={{
-              readOnly: true,
-            }}
+            InputProps={{ readOnly: true }}
           />
 
-          {/* Price (readonly display) */}
+          {/* Original Price (readonly) */}
           <TextField
             fullWidth
             label="Original Price ($)"
             margin="normal"
             value={book.price}
-            InputProps={{
-              readOnly: true,
-            }}
+            InputProps={{ readOnly: true }}
           />
 
-          {/* Discount % field */}
+          {/* Discount Percentage */}
           <TextField
             fullWidth
             label="Discount Percentage (%)"
@@ -127,7 +135,38 @@ export default function DiscountEdit({ open, onClose, book, onEdit }) {
             helperText={errors.discountPercent?.message}
           />
 
-          {/* Final price display */}
+          {/* Start DateTime */}
+          <TextField
+            fullWidth
+            label="Start Date and Time"
+            type="datetime-local"
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            {...register("startDateTime", {
+              required: "Start Date/Time is required",
+            })}
+            error={!!errors.startDateTime}
+            helperText={errors.startDateTime?.message}
+          />
+
+          {/* End DateTime */}
+          <TextField
+            fullWidth
+            label="End Date and Time"
+            type="datetime-local"
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
+            {...register("endDateTime", {
+              required: "End Date/Time is required",
+            })}
+            error={!!errors.endDateTime}
+            helperText={errors.endDateTime?.message}
+            inputProps={{
+              min: startDateTime || undefined,
+            }}
+          />
+
+          {/* Final Price */}
           {finalPrice !== null && (
             <Box mt={2}>
               <Typography variant="subtitle1">

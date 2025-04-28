@@ -9,20 +9,28 @@ import {
   Stack,
   TextField,
   IconButton,
+  MenuItem,
+  Chip,
+  Typography,
+  InputAdornment,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import CloseIcon from "@mui/icons-material/Close";
 
 export default function MyBookAdd({ onAddBook, onSearch }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
+  const [tags, setTags] = useState([]);
+  const [nowRelease, setNowRelease] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
+    setValue,
     formState: { errors },
   } = useForm();
 
@@ -31,10 +39,57 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
     onSearch(e.target.value);
   };
 
+  const handleTagKeyDown = (e) => {
+    if (e.key === "Enter" && e.target.value.trim() !== "") {
+      e.preventDefault();
+      if (!tags.includes(e.target.value.trim())) {
+        setTags((prev) => [...prev, e.target.value.trim()]);
+      }
+      e.target.value = "";
+    }
+  };
+
+  const handleTagDelete = (tagToDelete) => {
+    setTags((tags) => tags.filter((tag) => tag !== tagToDelete));
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    reset();
+    setTags([]);
+    setNowRelease(false);
+  };
+
   const onSubmit = (data) => {
+    data.tags = tags;
+    if (nowRelease) {
+      data.releaseDateTime = new Date().toISOString();
+    }
     onAddBook(data);
     reset();
+    setTags([]);
     setOpen(false);
+    setNowRelease(false);
+  };
+
+  const categories = [
+    "Fiction",
+    "Non-Fiction",
+    "Science",
+    "History",
+    "Biography",
+    "Children",
+    "Fantasy",
+  ];
+
+  const getMinDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   return (
@@ -65,12 +120,7 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
       </Stack>
 
       {/* Add Book Popup */}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle
           sx={{
             bgcolor: "#586ba4",
@@ -81,7 +131,7 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
           }}
         >
           Add New Book
-          <IconButton onClick={() => setOpen(false)} sx={{ color: "white" }}>
+          <IconButton onClick={handleClose} sx={{ color: "white" }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -112,10 +162,17 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
               fullWidth
               label="Category"
               margin="normal"
+              select
               {...register("category", { required: "Category is required" })}
               error={!!errors.category}
               helperText={errors.category?.message}
-            />
+            >
+              {categories.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
+              ))}
+            </TextField>
             <TextField
               fullWidth
               label="Publisher"
@@ -132,32 +189,59 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
               error={!!errors.ISBN}
               helperText={errors.ISBN?.message}
             />
-            <TextField
-              fullWidth
-              label="Release Date"
-              type="date"
-              margin="normal"
-              InputLabelProps={{ shrink: true }}
-              {...register("releaseDate", {
-                required: "Release Date is required",
-              })}
-              error={!!errors.releaseDate}
-              helperText={errors.releaseDate?.message}
-            />
+            {/* Release Date/Time Section */}
+            <Typography variant="subtitle2" sx={{ mt: 2 }}>
+              Release Date and Time
+            </Typography>
+            <Stack
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              sx={{ mt: 1 }}
+            >
+              <TextField
+                fullWidth
+                label="Release DateTime"
+                type="datetime-local"
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: getMinDateTime() }}
+                {...register("releaseDateTime", {
+                  required: !nowRelease && "Release Date/Time is required",
+                })}
+                disabled={nowRelease}
+                error={!!errors.releaseDateTime}
+                helperText={errors.releaseDateTime?.message}
+              />
+              <Button
+                variant={nowRelease ? "contained" : "outlined"}
+                onClick={() => setNowRelease(!nowRelease)}
+              >
+                {nowRelease ? "Set Custom Time" : "Set Now"}
+              </Button>
+            </Stack>
+            {/* Tags Input */}
             <TextField
               fullWidth
               label="Tags"
               margin="normal"
-              {...register("tags")}
+              placeholder="Type and press Enter"
+              onKeyDown={handleTagKeyDown}
+              InputProps={{
+                startAdornment: (
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                    {tags.map((tag, index) => (
+                      <Chip
+                        key={index}
+                        label={tag}
+                        onDelete={() => handleTagDelete(tag)}
+                        size="small"
+                      />
+                    ))}
+                  </Box>
+                ),
+              }}
             />
-            <TextField
-              fullWidth
-              label="Language"
-              margin="normal"
-              {...register("language", { required: "Language is required" })}
-              error={!!errors.language}
-              helperText={errors.language?.message}
-            />
+            {/* Description */}
             <TextField
               fullWidth
               label="Description"
@@ -166,6 +250,7 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
               rows={3}
               {...register("description")}
             />
+            {/* Cover Image */}
             <TextField
               fullWidth
               label="Cover Image URL"
@@ -180,6 +265,7 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
               error={!!errors.coverImage}
               helperText={errors.coverImage?.message}
             />
+            {/* Book File URL */}
             <TextField
               fullWidth
               label="Book File URL"
@@ -194,8 +280,9 @@ export default function MyBookAdd({ onAddBook, onSearch }) {
               error={!!errors.filePath}
               helperText={errors.filePath?.message}
             />
+
             <DialogActions>
-              <Button onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={handleClose}>Cancel</Button>
               <Button type="submit" variant="contained">
                 Add
               </Button>
