@@ -7,6 +7,7 @@ import Book from '../../models/Book.module.js'
 import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
 import { categoriesWithGenres } from '../../config/categoriesGenres.js'
+import { formatBookWithDiscount } from '../../utils/discountHelper.js'
 
 //@route  GET /api/book/search
 //@desc   Search books by title, description, category, or author name
@@ -151,6 +152,122 @@ router.get('/search', async (req, res) => {
   }
 })
 
+//@route  PATCH /api/book/:id/discount
+//@desc   Set or update discount details for a book
+//@access Private (only seller who owns it)
+router.patch(
+  '/:id/discount',
+  passport.authenticate('jwt', { session: false }),
+  authorizeRoles('seller'),
+  async (req, res) => {
+    const { id } = req.params
+    const { discountPercentage, discountStart, discountEnd } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid book ID' })
+    }
+
+    if (
+      typeof discountPercentage !== 'number' ||
+      discountPercentage <= 0 ||
+      discountPercentage > 100
+    ) {
+      return res.status(400).json({
+        message: 'Invalid discount percentage (must be between 1 and 100)',
+      })
+    }
+
+    if (!discountStart || !discountEnd) {
+      return res.status(400).json({
+        message: 'Both discountStart and discountEnd must be provided',
+      })
+    }
+
+    try {
+      const book = await Book.findById(id)
+
+      if (!book) {
+        return res.status(404).json({ message: 'Book not found' })
+      }
+
+      if (!book.author.equals(req.user.id)) {
+        return res
+          .status(403)
+          .json({ message: 'Unauthorized to set discount for this book' })
+      }
+
+      // 🔥 Actually updating the discount fields
+      book.discountPercentage = discountPercentage
+      book.discountStart = new Date(discountStart)
+      book.discountEnd = new Date(discountEnd)
+
+      await book.save()
+
+      // ✅ Re-fetch the updated book and format it
+      const updatedBook = await Book.findById(book._id).populate(
+        'author',
+        'name email'
+      )
+      const formattedBook = formatBookWithDiscount(updatedBook)
+
+      return res.status(200).json({
+        message: 'Discount set successfully',
+        book: formattedBook,
+      })
+    } catch (error) {
+      console.error('Error setting discount:', error)
+      return res
+        .status(500)
+        .json({ message: 'Server error', error: error.message })
+    }
+  }
+)
+
+// @route   GET /api/book/discounted
+// @desc    Get currently discounted books
+// @access  Public
+router.get('/discounted', async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
+  const now = new Date()
+
+  try {
+    // 1) fetch only books with an active discount
+    const raw = await Book.find({
+      discountPercentage: { $gt: 0 },
+      discountStart: { $lte: now },
+      discountEnd: { $gte: now },
+    })
+      .populate('author', 'name email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    // 2) apply your DRY helper
+    const books = raw.map(formatBookWithDiscount)
+
+    // 3) count total for pagination
+    const total = await Book.countDocuments({
+      discountPercentage: { $gt: 0 },
+      discountStart: { $lte: now },
+      discountEnd: { $gte: now },
+    })
+    const totalPages = Math.ceil(total / limit)
+
+    return res.json({
+      message: 'Discounted books retrieved successfully',
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages,
+    })
+  } catch (err) {
+    console.error('Error fetching discounted books:', err)
+    return res.status(500).json({ message: 'Server error', error: err.message })
+  }
+})
 //@route  GET /api/book/myBooks
 //@desc   Get books uploaded by the logged-in user
 //@access Private
@@ -294,6 +411,42 @@ router.get('/top-rated', async (req, res) => {
     })
   } catch (error) {
     console.error('Error fetching top rated books:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+//@route  GET /api/book/genre/:genre
+//@desc   Get books by a specific genre
+//@access Public
+router.get('/genre/:genre', async (req, res) => {
+  const genre = req.params.genre
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
+
+  try {
+    const books = await Book.find({
+      genres: { $regex: new RegExp(`^${genre}$`, 'i') },
+    })
+      .populate('author', 'name email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    const total = await Book.countDocuments({
+      genres: { $regex: new RegExp(`^${genre}$`, 'i') },
+    })
+    const totalPages = Math.ceil(total / limit)
+
+    res.status(200).json({
+      message: `Books retrieved successfully for genre '${genre}'`,
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages,
+    })
+  } catch (error) {
+    console.error('Error fetching books by genre:', error)
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 })
@@ -561,6 +714,61 @@ router.post('/:id/review', reviewLimiter, async (req, res) => {
   } catch (error) {
     console.error('Error adding anonymous review:', error)
     res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+//@route  GET /api/book/:id/reviews
+//@desc   Get all reviews + average rating for a book
+//@access Public
+router.get('/:id/reviews', async (req, res) => {
+  const { id } = req.params
+
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const limit = Math.max(1, parseInt(req.query.limit) || 5) // Default 5 reviews per page
+  const skip = (page - 1) * limit
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid book ID' })
+  }
+
+  try {
+    const book = await Book.findById(id)
+
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' })
+    }
+    const sortedReviews = book.reviews.sort((a, b) => b.createdAt - a.createdAt)
+
+    const paginatedReviews = sortedReviews.slice(skip, skip + limit)
+    const formattedReviews = paginatedReviews.map((review) => ({
+      name: review.name,
+      comment: review.comment,
+      rating: review.rating,
+      createdAt: new Date(review.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    }))
+
+    const totalReviews = book.reviews.length
+    const totalPages = Math.ceil(totalReviews / limit)
+
+    return res.status(200).json({
+      message: 'Reviews retrieved successfully',
+      averageRating: book.averageRating,
+      reviews: formattedReviews,
+      currentPage: page,
+      pageSize: limit,
+      totalReviews,
+      totalPages,
+    })
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+    return res
+      .status(500)
+      .json({ message: 'Server error', error: error.message })
   }
 })
 

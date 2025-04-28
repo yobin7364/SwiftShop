@@ -62,6 +62,9 @@ const BookSchema = new Schema(
       type: Number,
       default: 0,
     },
+    discountPercentage: { type: Number, default: 0 },
+    discountStart: { type: Date, default: null },
+    discountEnd: { type: Date, default: null },
     createdAt: {
       type: Date,
       default: Date.now,

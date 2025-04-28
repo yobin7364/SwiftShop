@@ -10,7 +10,7 @@ export const categoriesWithGenres = {
   ],
   'Non-Fiction': ['Biography', 'Self-Help', 'Politics', 'History'],
   Academic: ['Mathematics', 'Physics', 'Psychology', 'Law'],
-  'Technical / Professional': ['Programming', 'Cybersecurity', 'AI'],
-  'Guide / Reference': ['Cookbooks', 'DIY', 'Language Learning'],
-  'Children / Young Adult': ['Picture Books', 'Teen Fiction', 'Fairytales'],
+  Technical: ['Programming', 'Cybersecurity', 'AI'],
+  Guide: ['Cookbooks', 'DIY', 'Language Learning'],
+  Children: ['Picture Books', 'Teen Fiction', 'Fairytales'],
 }
