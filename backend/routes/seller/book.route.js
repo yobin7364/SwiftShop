@@ -7,7 +7,16 @@ import Book from '../../models/Book.module.js'
 import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
 import { categoriesWithGenres } from '../../config/categoriesGenres.js'
+import { formatBookWithDiscount } from '../../utils/discountHelper.js'
+import { expressjwt } from 'express-jwt'
+import keys from '../../config/keys.config.js'
+import { genresList } from '../../config/genresList.js'
 
+const optionalAuth = expressjwt({
+  secret: keys.secretOrKey,
+  algorithms: ['HS256'],
+  credentialsRequired: false, // 👈 this makes JWT optional
+})
 //@route  GET /api/book/search
 //@desc   Search books by title, description, category, or author name
 //@access Public
@@ -30,6 +39,24 @@ router.get('/search', async (req, res) => {
         },
       },
       { $unwind: '$authorDetails' },
+
+      {
+        $match: {
+          $and: [
+            { isPublished: true },
+            { releaseDate: { $lte: new Date() } },
+            {
+              $or: [
+                { title: { $regex: searchRegex } },
+                { description: { $regex: searchRegex } },
+                { category: { $regex: searchRegex } },
+                { genres: { $regex: searchRegex } },
+                { 'authorDetails.name': { $regex: searchRegex } },
+              ],
+            },
+          ],
+        },
+      },
       {
         $project: {
           title: 1,
@@ -46,17 +73,6 @@ router.get('/search', async (req, res) => {
             name: 1,
             email: 1,
           },
-        },
-      },
-      {
-        $match: {
-          $or: [
-            { title: { $regex: searchRegex } },
-            { description: { $regex: searchRegex } },
-            { category: { $regex: searchRegex } },
-            { genres: { $regex: searchRegex } },
-            { 'authorDetails.name': { $regex: searchRegex } },
-          ],
         },
       },
       { $sort: { createdAt: -1 } },
@@ -77,11 +93,17 @@ router.get('/search', async (req, res) => {
       { $unwind: '$authorDetails' },
       {
         $match: {
-          $or: [
-            { title: { $regex: searchRegex } },
-            { description: { $regex: searchRegex } },
-            { category: { $regex: searchRegex } },
-            { 'authorDetails.name': { $regex: searchRegex } },
+          $and: [
+            { isPublished: true },
+            { releaseDate: { $lte: new Date() } },
+            {
+              $or: [
+                { title: { $regex: searchRegex } },
+                { description: { $regex: searchRegex } },
+                { category: { $regex: searchRegex } },
+                { 'authorDetails.name': { $regex: searchRegex } },
+              ],
+            },
           ],
         },
       },
@@ -150,7 +172,225 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 })
+// @route   PATCH /api/book/:bookId/publish
+// @desc    Toggle publish/unpublish a book
+// @access  Private (seller only)
+router.patch(
+  '/:bookId/publish',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      const { bookId } = req.params
+      let { publish } = req.body // could be boolean, string, or missing
 
+      if (!mongoose.Types.ObjectId.isValid(bookId)) {
+        return res.status(400).json({ message: 'Invalid book ID.' })
+      }
+
+      const book = await Book.findById(bookId)
+      if (!book) {
+        return res.status(404).json({ message: 'Book not found.' })
+      }
+
+      // Check if the current user is the author of the book
+      if (book.author.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'Unauthorized: Not your book.' })
+      }
+
+      // 🔒 Coerce string 'true'/'false' → boolean
+      if (typeof publish === 'string') {
+        publish = publish.toLowerCase() === 'true'
+      }
+
+      if (typeof publish !== 'boolean') {
+        return res
+          .status(400)
+          .json({ message: 'Invalid "publish" value. Must be true or false.' })
+      }
+
+      book.isPublished = publish
+      await book.save()
+
+      res.status(200).json({
+        message: `Book has been ${
+          publish ? 'published' : 'unpublished'
+        } successfully.`,
+        book,
+      })
+    } catch (error) {
+      console.error('Error publishing/unpublishing book:', error)
+      res.status(500).json({ message: 'Server error', error: error.message })
+    }
+  }
+)
+
+//@route  PATCH /api/book/:id/discount
+//@desc   Set or update discount details for a book
+//@access Private (only seller who owns it)
+router.patch(
+  '/:id/discount',
+  passport.authenticate('jwt', { session: false }),
+  authorizeRoles('seller'),
+  async (req, res) => {
+    const { id } = req.params
+    const { discountPercentage, discountStart, discountEnd } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid book ID' })
+    }
+
+    if (
+      typeof discountPercentage !== 'number' ||
+      discountPercentage <= 0 ||
+      discountPercentage > 100
+    ) {
+      return res.status(400).json({
+        message: 'Invalid discount percentage (must be between 1 and 100)',
+      })
+    }
+
+    if (!discountStart || !discountEnd) {
+      return res.status(400).json({
+        message: 'Both discountStart and discountEnd must be provided',
+      })
+    }
+
+    try {
+      const book = await Book.findById(id)
+
+      if (!book) {
+        return res.status(404).json({ message: 'Book not found' })
+      }
+
+      if (!book.author.equals(req.user.id)) {
+        return res
+          .status(403)
+          .json({ message: 'Unauthorized to set discount for this book' })
+      }
+
+      // 🔥 Actually updating the discount fields
+      book.discountPercentage = discountPercentage
+      book.discountStart = new Date(discountStart)
+      book.discountEnd = new Date(discountEnd)
+
+      await book.save()
+
+      // ✅ Re-fetch the updated book and format it
+      const updatedBook = await Book.findById(book._id).populate(
+        'author',
+        'name email'
+      )
+      const formattedBook = formatBookWithDiscount(updatedBook)
+
+      return res.status(200).json({
+        message: 'Discount set successfully',
+        book: formattedBook,
+      })
+    } catch (error) {
+      console.error('Error setting discount:', error)
+      return res
+        .status(500)
+        .json({ message: 'Server error', error: error.message })
+    }
+  }
+)
+router.get('/genres', (req, res) => {
+  res.status(200).json({
+    message: 'Genres retrieved successfully',
+    genres: genresList,
+  })
+})
+
+router.get('/genre/:slug', async (req, res) => {
+  const genreSlug = req.params.slug.toLowerCase()
+  const genreObj = genresList.find((g) => g.slug === genreSlug)
+
+  if (!genreObj) {
+    return res.status(404).json({ message: 'Genre not found' })
+  }
+
+  const genreName = genreObj.name
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
+
+  try {
+    const books = await Book.find({
+      genres: genreName,
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+      .populate('author', 'name email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    const total = await Book.countDocuments({
+      genres: genreName,
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+
+    res.status(200).json({
+      message: `Books retrieved for genre '${genreName}'`,
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages: Math.ceil(total / limit),
+    })
+  } catch (error) {
+    console.error('Error fetching books by genre:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+
+// @route   GET /api/book/discounted
+// @desc    Get currently discounted books
+// @access  Public
+router.get('/discounted', async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
+  const now = new Date()
+
+  try {
+    // 1) fetch only books with an active discount
+    const raw = await Book.find({
+      discountPercentage: { $gt: 0 },
+      discountStart: { $lte: now },
+      discountEnd: { $gte: now },
+      isPublished: true,
+      releaseDate: { $lte: now },
+    })
+      .populate('author', 'name email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    const books = raw.map(formatBookWithDiscount)
+
+    // 3) count total for pagination
+    const total = await Book.countDocuments({
+      discountPercentage: { $gt: 0 },
+      discountStart: { $lte: now },
+      discountEnd: { $gte: now },
+    })
+    const totalPages = Math.ceil(total / limit)
+
+    return res.json({
+      message: 'Discounted books retrieved successfully',
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages,
+    })
+  } catch (err) {
+    console.error('Error fetching discounted books:', err)
+    return res.status(500).json({ message: 'Server error', error: err.message })
+  }
+})
 //@route  GET /api/book/myBooks
 //@desc   Get books uploaded by the logged-in user
 //@access Private
@@ -158,31 +398,50 @@ router.get(
   '/myBooks',
   passport.authenticate('jwt', { session: false }),
   async (req, res) => {
-    const query = req.query.query || ''
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 10
-
-    const searchFilter = getSearchFilter(query)
+    const page = Math.max(1, parseInt(req.query.page) || 1) // Always at least page 1
+    const limit = Math.max(1, parseInt(req.query.limit) || 10) // Default 10 books per page
+    const skip = (page - 1) * limit
 
     try {
-      const books = await Book.find({ author: req.user.id, ...searchFilter })
+      const books = await Book.find({ author: req.user.id })
         .populate('author', 'name email')
-        .skip((page - 1) * limit)
+        .sort({ isPublished: 1, createdAt: -1 })
+        .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 })
 
-      const total = await Book.countDocuments({
+      const totalBooks = await Book.countDocuments({
         author: req.user.id,
-        ...searchFilter,
       })
 
       if (books.length === 0) {
         return res.status(404).json({ message: 'No books found for this user' })
       }
+      const booksDetails = books.map((book) => ({
+        _id: book._id,
+        title: book.title,
+        price: book.price,
+        category: book.category,
+        genres: book.genres,
+        description: book.description,
+        publisher: book.publisher,
+        isbn: book.isbn,
+        releaseDate: book.releaseDate,
+        file: book.file,
+        isPublished: book.isPublished,
+        status: book.isPublished ? 'Published' : 'Unpublished',
+        createdAt: book.createdAt,
+        updatedAt: book.updatedAt,
+      }))
+      const totalPages = Math.ceil(totalBooks / limit)
 
-      res
-        .status(200)
-        .json({ message: 'Books retrieved successfully', books, total })
+      res.status(200).json({
+        message: 'Books retrieved successfully',
+        books: booksDetails,
+        currentPage: page,
+        pageSize: limit,
+        totalBooks,
+        totalPages,
+      })
     } catch (error) {
       console.error("Error fetching user's books:", error)
       res.status(500).json({ message: 'Server error', error: error.message })
@@ -208,6 +467,8 @@ router.get('/category/:category', async (req, res) => {
   try {
     const books = await Book.find({
       category: { $regex: new RegExp(`^${category}$`, 'i') },
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
     })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -297,24 +558,66 @@ router.get('/top-rated', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 })
-
-//@route  GET /api/book/:id
-//@desc   Get a single book by ID
+//@route  GET /api/book/genre/:genre
+//@desc   Get books by a specific genre
 //@access Public
-router.get('/:id', async (req, res) => {
-  const bookId = req.params.id
+router.get('/genre/:genre', async (req, res) => {
+  const genre = req.params.genre
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
 
-  if (!mongoose.Types.ObjectId.isValid(bookId)) {
+  try {
+    const books = await Book.find({
+      genres: { $regex: new RegExp(`^${genre}$`, 'i') },
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+      .populate('author', 'name email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    const total = await Book.countDocuments({
+      genres: { $regex: new RegExp(`^${genre}$`, 'i') },
+    })
+    const totalPages = Math.ceil(total / limit)
+
+    res.status(200).json({
+      message: `Books retrieved successfully for genre '${genre}'`,
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages,
+    })
+  } catch (error) {
+    console.error('Error fetching books by genre:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+router.get('/:id', optionalAuth, async (req, res) => {
+  const { id } = req.params
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ message: 'Invalid book ID' })
   }
 
   try {
-    const book = await Book.findById(bookId).populate('author', 'name email')
+    const book = await Book.findById(id).populate('author', 'name email')
     if (!book) {
       return res.status(404).json({ message: 'Book not found' })
     }
 
-    // Format releaseDate
+    const now = new Date()
+    const isReleased = book.releaseDate && book.releaseDate <= now
+    const isPublic = book.isPublished && isReleased
+    const isOwner = req.user && book.author._id.toString() === req.user.id
+
+    if (!isPublic && !isOwner) {
+      return res.status(403).json({ message: 'Book not released yet' })
+    }
+
     const bookObj = book.toObject()
     bookObj.releaseDateFormatted = book.releaseDate
       ? new Date(book.releaseDate).toLocaleDateString('en-US', {
@@ -324,12 +627,15 @@ router.get('/:id', async (req, res) => {
         })
       : null
 
-    res
-      .status(200)
-      .json({ message: 'Book retrieved successfully', book: bookObj })
+    return res.status(200).json({
+      message: 'Book retrieved successfully',
+      book: bookObj,
+    })
   } catch (error) {
     console.error('Error fetching book:', error)
-    res.status(500).json({ message: 'Server error', error: error.message })
+    return res
+      .status(500)
+      .json({ message: 'Server error', error: error.message })
   }
 })
 
@@ -341,14 +647,19 @@ router.get('/', async (req, res) => {
   const limit = parseInt(req.query.limit) || 10
 
   try {
-    const books = await Book.find()
+    const rawBooks = await Book.find({
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
       .populate('author', 'name email')
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 })
 
-    const total = await Book.countDocuments()
+    const total = await Book.countDocuments({ isPublished: true })
     const totalPages = Math.ceil(total / limit)
+
+    const books = rawBooks.map(formatBookWithDiscount)
 
     res.status(200).json({
       message: 'Books retrieved successfully',
@@ -444,6 +755,13 @@ router.put(
     try {
       const book = await Book.findById(bookId)
 
+      if (
+        !book.isPublished ||
+        (book.releaseDate && book.releaseDate > new Date())
+      ) {
+        return res.status(403).json({ message: 'Book not released yet' })
+      }
+
       if (!book) {
         return res.status(404).json({ message: 'Book not found' })
       }
@@ -471,6 +789,51 @@ router.put(
     }
   }
 )
+
+router.get('/:id', optionalAuth, async (req, res) => {
+  const { id } = req.params
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid book ID' })
+  }
+
+  try {
+    const book = await Book.findById(id).populate('author', 'name email')
+
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' })
+    }
+
+    const now = new Date()
+    const isReleased = book.releaseDate && book.releaseDate <= now
+    const isPublic = book.isPublished && isReleased
+    const isOwner =
+      req.user && book.author && book.author._id?.toString() === req.user.id
+
+    if (!isPublic && !isOwner) {
+      return res.status(403).json({ message: 'Book not released yet' })
+    }
+
+    const bookObj = book.toObject()
+    bookObj.releaseDateFormatted = book.releaseDate
+      ? new Date(book.releaseDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : null
+
+    return res.status(200).json({
+      message: 'Book retrieved successfully',
+      book: bookObj,
+    })
+  } catch (error) {
+    console.error('Error fetching book:', error)
+    return res
+      .status(500)
+      .json({ message: 'Server error', error: error.message })
+  }
+})
 
 //@route  DELETE /api/book/:bookId
 //@desc   Delete a book
@@ -561,6 +924,61 @@ router.post('/:id/review', reviewLimiter, async (req, res) => {
   } catch (error) {
     console.error('Error adding anonymous review:', error)
     res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+//@route  GET /api/book/:id/reviews
+//@desc   Get all reviews + average rating for a book
+//@access Public
+router.get('/:id/reviews', async (req, res) => {
+  const { id } = req.params
+
+  const page = Math.max(1, parseInt(req.query.page) || 1)
+  const limit = Math.max(1, parseInt(req.query.limit) || 5) // Default 5 reviews per page
+  const skip = (page - 1) * limit
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid book ID' })
+  }
+
+  try {
+    const book = await Book.findById(id)
+
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' })
+    }
+    const sortedReviews = book.reviews.sort((a, b) => b.createdAt - a.createdAt)
+
+    const paginatedReviews = sortedReviews.slice(skip, skip + limit)
+    const formattedReviews = paginatedReviews.map((review) => ({
+      name: review.name,
+      comment: review.comment,
+      rating: review.rating,
+      createdAt: new Date(review.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    }))
+
+    const totalReviews = book.reviews.length
+    const totalPages = Math.ceil(totalReviews / limit)
+
+    return res.status(200).json({
+      message: 'Reviews retrieved successfully',
+      averageRating: book.averageRating,
+      reviews: formattedReviews,
+      currentPage: page,
+      pageSize: limit,
+      totalReviews,
+      totalPages,
+    })
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+    return res
+      .status(500)
+      .json({ message: 'Server error', error: error.message })
   }
 })
 
