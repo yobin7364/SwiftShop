@@ -10,6 +10,7 @@ import { categoriesWithGenres } from '../../config/categoriesGenres.js'
 import { formatBookWithDiscount } from '../../utils/discountHelper.js'
 import { expressjwt } from 'express-jwt'
 import keys from '../../config/keys.config.js'
+import { genresList } from '../../config/genresList.js'
 
 const optionalAuth = expressjwt({
   secret: keys.secretOrKey,
@@ -293,6 +294,56 @@ router.patch(
     }
   }
 )
+router.get('/genres', (req, res) => {
+  res.status(200).json({
+    message: 'Genres retrieved successfully',
+    genres: genresList,
+  })
+})
+
+router.get('/genre/:slug', async (req, res) => {
+  const genreSlug = req.params.slug.toLowerCase()
+  const genreObj = genresList.find((g) => g.slug === genreSlug)
+
+  if (!genreObj) {
+    return res.status(404).json({ message: 'Genre not found' })
+  }
+
+  const genreName = genreObj.name
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 10
+  const skip = (page - 1) * limit
+
+  try {
+    const books = await Book.find({
+      genres: genreName,
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+      .populate('author', 'name email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+
+    const total = await Book.countDocuments({
+      genres: genreName,
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+
+    res.status(200).json({
+      message: `Books retrieved for genre '${genreName}'`,
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalBooks: total,
+      totalPages: Math.ceil(total / limit),
+    })
+  } catch (error) {
+    console.error('Error fetching books by genre:', error)
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
 
 // @route   GET /api/book/discounted
 // @desc    Get currently discounted books
