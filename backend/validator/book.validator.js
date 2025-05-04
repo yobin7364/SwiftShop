@@ -44,6 +44,10 @@ export const validateBook = (data) => {
     description: Joi.string().trim().allow('').messages({
       'string.empty': 'Description cannot be empty.',
     }),
+    coverImage: Joi.string().uri().required().messages({
+      'string.uri': 'Cover image must be a valid URL.',
+      'any.required': 'Cover image is required.',
+    }),
     filePath: Joi.string()
       .uri()
       .required()

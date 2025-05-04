@@ -58,21 +58,20 @@ router.get(
         'Dec',
       ]
 
-      const sortedSalesOverview = {}
-      const sortedRevenueOverview = {}
-
-      monthOrder.forEach((m) => {
-        Object.keys(monthlySales).forEach((key) => {
-          if (key.startsWith(m)) {
-            sortedSalesOverview[key] = monthlySales[key]
-          }
-        })
-        Object.keys(monthlyRevenue).forEach((key) => {
-          if (key.startsWith(m)) {
-            sortedRevenueOverview[key] = monthlyRevenue[key]
-          }
-        })
+      const monthYearKeys = Object.keys(monthlySales).sort((a, b) => {
+        const toDate = (str) => new Date(`1 ${str}`) // "Apr 2025" → 1 Apr 2025
+        return toDate(a) - toDate(b)
       })
+
+      const sortedSalesOverview = monthYearKeys.map((key) => ({
+        month: key,
+        value: monthlySales[key],
+      }))
+
+      const sortedRevenueOverview = monthYearKeys.map((key) => ({
+        month: key,
+        value: monthlyRevenue[key],
+      }))
 
       // 4. Average Rating
       const books = await Book.find({ author: sellerId }).select(
@@ -141,7 +140,7 @@ router.get(
       })
     } catch (error) {
       console.error('Error fetching seller dashboard:', error)
-      res.status(500).json({ message: 'Server error', error: error.message })
+      next(error)
     }
   }
 )
