@@ -18,19 +18,24 @@ router.post(
     const { bookId } = req.body
 
     if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
-      return res.status(400).json({ message: 'Invalid or missing book ID.' })
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid or missing book ID.' })
     }
 
     try {
       const book = await Book.findById(bookId)
       if (!book) {
-        return res.status(404).json({ message: 'Book not found.' })
+        return res
+          .status(404)
+          .json({ success: false, message: 'Book not found.' })
       }
 
       if (!book.author) {
-        return res
-          .status(400)
-          .json({ message: 'Book does not have a valid seller.' })
+        return res.status(400).json({
+          success: false,
+          message: 'Book does not have a valid seller.',
+        })
       }
 
       const newOrder = new Order({
@@ -41,10 +46,13 @@ router.post(
 
       await newOrder.save()
 
-      res.status(201).json({ message: 'Book purchase simulated successfully!' })
+      res.status(201).json({
+        success: true,
+        message: 'Book purchase simulated successfully!',
+      })
     } catch (error) {
       console.error('Error creating order:', error)
-      res.status(500).json({ message: 'Server error', error: error.message })
+      next(error)
     }
   }
 )
