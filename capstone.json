@@ -1,0 +1,870 @@
+{
+  "info": {
+    "_postman_id": "bf4451fa-d8d6-4245-9b0c-1d14571f604d",
+    "name": "Capstone",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25812470",
+    "_collection_link": "https://lunivha.postman.co/workspace/mern-crash-course~5584d9e6-7850-4609-bf38-f7438e554798/collection/25812470-bf4451fa-d8d6-4245-9b0c-1d14571f604d?action=share&source=collection_link&creator=25812470"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\n{\n    \"name\": \"Maddy Shrestha\",\n    \"email\": \"maddyshrestha@gmail.com\",\n    \"password\": \"maddystha\",\n    \"password2\": \"maddystha\",\n    \"role\": \"seller\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/users/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "users", "register"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Change password",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MGY1NmVmNmU3YzkzYjAyMGFkNGZiNSIsIm5hbWUiOiJNYWRodXIgU2hyZXN0aGEiLCJyb2xlIjpbInNlbGxlciJdLCJpYXQiOjE3NDU4MzU3NjMsImV4cCI6MTc0NjQ0MDU2M30.xgKwjeVMnRhQzYJkVOFQo55QAp8pAiTmmkaXlc6HS6s",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"currentPassword\": \"madhurstha\",\n  \"newPassword\": \"hawahawai\",\n  \"confirmNewPassword\" : \"hawahawai\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/users/change-password",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "users", "change-password"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\" : \"maddyshrestha@gmail.com\",\n    \"password\" : \"maddystha\",\n    \"role\" : \"seller\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/users/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "users", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ0MDg2Nzc0LCJleHAiOjE3NDQ2OTE1NzR9.Avk8V8pU_bU7AdxRCzehUidNePwi_SqwnOaMsa9YQcU",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\n\"title\": \"Dutton does disaster\",\n\"price\" :\"500\",\n\"category\" : \"thriller\",\n\"filePath\" : \"http://localhost:4000/uploads/books/4cfa58d4-d69a-44e7-b513-7270a31fd77b.pdf\"\n\n\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/search?query=dutton",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "search"],
+          "query": [
+            {
+              "key": "query",
+              "value": "dutton"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create book",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Tomorrow's Book\",\n  \"price\": 10,\n  \"category\": \"Fiction\",\n  \"genres\": [\"Mystery\"],\n  \"description\": \"Not yet released.\",\n  \"coverImage\": \"https://yourcdn.com/images/default-book-cover.jpg\",\n  \"filePath\": \"https://example.com/book.pdf\",\n  \"publisher\": \"TimeHouse\",\n  \"isbn\": \"1234567890999\",\n  \"releaseDate\": \"2025-04-29T15:38:00.000Z\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get all books",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ1MzkxNDQ5LCJleHAiOjE3NDU5OTYyNDl9.PUtlASrj8uvYDnCylP4IbV-tskOK7H5l60IkgDa1Gxc",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book?page=1&limit=20",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get one book",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/68136f2e308a0170280e5f59",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "68136f2e308a0170280e5f59"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Edit a book",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Echoes of the Forgotten Code - Updated Edition\",\n  \"price\": 99.99,\n  \"category\": \"Technical\",\n  \"genres\": [\"Programming\"],\n  \"description\": \"An updated deep dive into lost programming paradigms and modern AI techniques.\",\n  \"coverImage\": \"https://yourcdn.com/images/default-book-cover.jpg\",\n  \"filePath\": \"https://example.com/ebooks/echoes-updated.pdf\",\n  \"publisher\": \"CodeLore Revised\",\n  \"isbn\": \"9812745610345\",\n  \"releaseDate\": \"2025-04-21T10:00:00.000Z\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/68136f2e308a0170280e5f59",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "68136f2e308a0170280e5f59"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete book",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/6810c989557ca733a54e20f6",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "6810c989557ca733a54e20f6"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Each Seller Books",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NjE3MDQ4NSwiZXhwIjoxNzQ2Nzc1Mjg1fQ.N2EllBj3WKiqPACHv2zAizn-cW0Z7CCc7CNdICVr5z0",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"The Art of War\",\n  \"price\": 1229.99,\n  \"category\": \"Fantasy\",\n  \"description\": \"The old ways of war.\",\n  \"filePath\": \"https://example.com/ebooks/war.pdf\",\n  \"publisher\": \"Mandala Reads\",\n  \"isbn\": \"9781234577890\",\n  \"releaseDate\": \"2024-12-05\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/myBooks?page=1&limit=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "myBooks"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "\n{\n  \"bookId\": \"6810c989557ca733a54e20f6\",\n  \"createdAt\": \"2025-02-01T10:00:00.000Z\"\n}\n\n\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/order",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "order"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get orders",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"The Art of War\",\n  \"price\": 1229.99,\n  \"category\": \"Fantasy\",\n  \"description\": \"The old ways of war.\",\n  \"filePath\": \"https://example.com/ebooks/war.pdf\",\n  \"publisher\": \"Mandala Reads\",\n  \"isbn\": \"9781234577890\",\n  \"releaseDate\": \"2024-12-05\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/seller/dashboard",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "seller", "dashboard"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Publish Book",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"publish\": true\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/68136f2e308a0170280e5f59/publish",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "68136f2e308a0170280e5f59", "publish"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Add Discount",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NTkwNjgwOCwiZXhwIjoxNzQ2NTExNjA4fQ.US6fl2OZ5nmlklP6Etnm3Xhmr36S8j2bCOWS7nwgjgE",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"discountPercentage\": 65,\n  \"discountStart\": \"2025-04-27T00:00:00.000Z\", \n  \"discountEnd\": \"2025-05-10T23:59:59.000Z\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/68136f2e308a0170280e5f59/discount",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "68136f2e308a0170280e5f59", "discount"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Show discounted books",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ1MzkxNDQ5LCJleHAiOjE3NDU5OTYyNDl9.PUtlASrj8uvYDnCylP4IbV-tskOK7H5l60IkgDa1Gxc",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"The Art of War\",\n  \"price\": 1229.99,\n  \"category\": \"Fantasy\",\n  \"description\": \"The old ways of war.\",\n  \"filePath\": \"https://example.com/ebooks/war.pdf\",\n  \"publisher\": \"Mandala Reads\",\n  \"isbn\": \"9781234577890\",\n  \"releaseDate\": \"2024-12-05\"\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/discounted?page=1&limit=5",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "discounted"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get authors discounted books",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NjE3MDQ4NSwiZXhwIjoxNzQ2Nzc1Mjg1fQ.N2EllBj3WKiqPACHv2zAizn-cW0Z7CCc7CNdICVr5z0",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/my-discounted",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "my-discounted"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search authors book with discount",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MTA2YzY0MDQwOTUxNTY4OGU5Mjc4ZSIsIm5hbWUiOiJNYWRkeSBTaHJlc3RoYSIsInJvbGUiOlsic2VsbGVyIl0sImlhdCI6MTc0NjE3MDQ4NSwiZXhwIjoxNzQ2Nzc1Mjg1fQ.N2EllBj3WKiqPACHv2zAizn-cW0Z7CCc7CNdICVr5z0",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:4000/api/book/my-discounted?query=Tomorrow",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "my-discounted"],
+          "query": [
+            {
+              "key": "query",
+              "value": "Tomorrow"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search Book Genres",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\n\"title\": \"Dutton does disaster\",\n\"price\" :\"500\",\n\"category\" : \"thriller\",\n\"filePath\" : \"http://localhost:4000/uploads/books/4cfa58d4-d69a-44e7-b513-7270a31fd77b.pdf\"\n\n\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/genre/Romance?page=1&limit=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "genre", "Romance"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "See Book Reviews",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"comment\": \"This is blashphemy, I tell ya!\",\n  \"rating\": 2\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/6810c989557ca733a54e20f6/reviews?page=1&limit=5",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "6810c989557ca733a54e20f6", "reviews"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Give Book Review",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"comment\": \"What an wonderful ebook\",\n  \"rating\": 5\n}\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/6810d528a4040629eec63906/review",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "6810d528a4040629eec63906", "review"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Top Rated Books",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ0MDg2Nzc0LCJleHAiOjE3NDQ2OTE1NzR9.Avk8V8pU_bU7AdxRCzehUidNePwi_SqwnOaMsa9YQcU",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/top-rated?limit=5",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "top-rated"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Newly Added Books",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ0MDg2Nzc0LCJleHAiOjE3NDQ2OTE1NzR9.Avk8V8pU_bU7AdxRCzehUidNePwi_SqwnOaMsa9YQcU",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\n\"title\": \"Dutton does disaster\",\n\"price\" :\"500\",\n\"category\" : \"thriller\",\n\"filePath\" : \"http://localhost:4000/uploads/books/4cfa58d4-d69a-44e7-b513-7270a31fd77b.pdf\"\n\n\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/new?limit=5",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "new"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Free Books API",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ1NTgwNTI2LCJleHAiOjE3NDYxODUzMjZ9.Q6nrYMFq8vnzRf_QV86ILHPf_P9uFT_vB59RiMIiPew",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/free?page=1&limit=5",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "free"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get specific genres",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ0MDg2Nzc0LCJleHAiOjE3NDQ2OTE1NzR9.Avk8V8pU_bU7AdxRCzehUidNePwi_SqwnOaMsa9YQcU",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n\n\"title\": \"Dutton does disaster\",\n\"price\" :\"500\",\n\"category\" : \"thriller\",\n\"filePath\" : \"http://localhost:4000/uploads/books/4cfa58d4-d69a-44e7-b513-7270a31fd77b.pdf\"\n\n\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/book/genre/health-wellbeing?page=1&limit=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "genre", "health-wellbeing"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get all genres",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3ZjRhNmUwYTI4OTBhODQzMTI0MTI1MiIsIm5hbWUiOiJTeWRuZXkgSGVyYWxkIiwicm9sZSI6WyJzZWxsZXIiXSwiaWF0IjoxNzQ0MDg2Nzc0LCJleHAiOjE3NDQ2OTE1NzR9.Avk8V8pU_bU7AdxRCzehUidNePwi_SqwnOaMsa9YQcU",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:4000/api/book/genres",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "book", "genres"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

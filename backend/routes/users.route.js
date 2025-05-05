@@ -62,10 +62,7 @@ router.post('/register', async (req, res) => {
       user: savedUser,
     })
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      errors: 'Server error',
-    })
+    next(err)
   }
 })
 
@@ -146,10 +143,7 @@ router.post('/login', (req, res) => {
       })
     })
     .catch((err) => {
-      return res.status(500).json({
-        success: false,
-        errors: 'Server error',
-      })
+      next(error)
     })
 })
 
@@ -212,12 +206,12 @@ router.patch(
       await user.save()
 
       res.json({
+        success: true,
         message: `Role '${role}' added successfully`,
         role: user.role,
       })
     } catch (error) {
-      console.error(error)
-      res.status(500).json({ error: 'Server error' })
+      next(error)
     }
   }
 )
@@ -239,26 +233,32 @@ router.patch(
 
     // Validate input
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      return res.status(400).json({ message: 'All fields are required.' })
+      return res
+        .status(400)
+        .json({ success: false, message: 'All fields are required.' })
     }
 
     if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ message: 'New password must be at least 6 characters long.' })
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long.',
+      })
     }
 
     if (newPassword !== confirmNewPassword) {
-      return res
-        .status(400)
-        .json({ message: 'New password and confirm password do not match.' })
+      return res.status(400).json({
+        success: false,
+        message: 'New password and confirm password do not match.',
+      })
     }
 
     try {
       const user = await User.findById(req.user.id)
 
       if (!user) {
-        return res.status(404).json({ message: 'User not found.' })
+        return res
+          .status(404)
+          .json({ success: false, message: 'User not found.' })
       }
 
       // Check if currentPassword is correct
@@ -266,12 +266,13 @@ router.patch(
       if (!isMatch) {
         return res
           .status(400)
-          .json({ message: 'Current password is incorrect.' })
+          .json({ success: false, message: 'Current password is incorrect.' })
       }
       // Check if new password is same as old password
       const isSamePassword = await bcrypt.compare(newPassword, user.password)
       if (isSamePassword) {
         return res.status(400).json({
+          success: false,
           message: 'New password must be different from the current password.',
         })
       }
@@ -284,12 +285,11 @@ router.patch(
       user.password = hashedPassword
       await user.save()
 
-      return res.status(200).json({ message: 'Password changed successfully.' })
-    } catch (error) {
-      console.error('Error changing password:', error)
       return res
-        .status(500)
-        .json({ message: 'Server error', error: error.message })
+        .status(200)
+        .json({ success: true, message: 'Password changed successfully.' })
+    } catch (error) {
+      next(error)
     }
   }
 )

@@ -9,6 +9,7 @@ import passport from 'passport'
 import initializePassport from './config/passport.config.js'
 import orderRoutes from './routes/seller/order.route.js'
 import dashboardRoutes from './routes/seller/dashboard.route.js'
+import { errorHandler } from '../backend/middleware/errorHandler.js'
 
 dotenv.config()
 
@@ -37,6 +38,7 @@ app.use('/api/users', users)
 app.use('/api/book', book)
 app.use('/api/order', orderRoutes)
 app.use('/api/seller', dashboardRoutes)
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 4000
 
