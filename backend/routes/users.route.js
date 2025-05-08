@@ -7,6 +7,8 @@ import passport from 'passport'
 import { validateRegistration } from '../validator/register.validator.js'
 import { validateLoginInput } from '../validator/login.validator.js'
 import User from '../models/User.module.js'
+import Book from '../models/Book.module.js'
+import { validateEditUser } from '../validator/edit.validator.js'
 import { validateChangePasswordInput } from '../validator/password.validator.js'
 
 // Access the secretOrKey from the dynamically imported keys
@@ -69,7 +71,7 @@ router.post('/register', async (req, res) => {
 // @route  POST /api/users/login
 // @desc   Login user
 // @access Public
-router.post('/login', (req, res) => {
+router.post('/login', (req, res, next) => {
   // Validate input
   const validation = validateLoginInput(req.body)
 
@@ -82,6 +84,7 @@ router.post('/login', (req, res) => {
   // Find user by email
   User.findOne({ email })
     .then((user) => {
+      const errors = {}
       if (!user) {
         errors.email = 'Email not found'
         return res.status(400).json({
@@ -138,9 +141,7 @@ router.post('/login', (req, res) => {
         }
       })
     })
-    .catch((err) => {
-      next(error)
-    })
+    .catch((err) => next(err))
 })
 
 //@route  GET /api/users/current
@@ -156,6 +157,62 @@ router.get(
       email: req.user.email,
       role: [req.user.role],
     })
+  }
+)
+
+//@route  PUT /api/users/me
+router.put(
+  '/me',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res, next) => {
+    const { errors, isValid } = validateEditUser(req.body)
+    if (!isValid) {
+      return res.status(400).json({ success: false, errors })
+    }
+
+    try {
+      const user = await User.findById(req.user.id)
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          errors: { user: 'User not found' },
+        })
+      }
+
+      const { name, email } = req.body
+
+      // 🔐 Email uniqueness check
+      if (email && email !== user.email) {
+        const existingUser = await User.findOne({ email })
+        if (existingUser) {
+          return res.status(400).json({
+            success: false,
+            errors: { email: 'Email is already in use' },
+          })
+        }
+        user.email = email
+      }
+
+      if (name) user.name = name
+
+      await user.save()
+
+      res.status(200).json({
+        success: true,
+        message: 'User profile updated successfully',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      })
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        errors: { server: 'Server error' },
+      })
+    }
   }
 )
 
@@ -280,73 +337,37 @@ router.patch(
     }
   }
 )
-//@route   PATCH /api/users/change-password
-//@desc    Change password for the logged-in user
-//@access  Private
-router.patch(
-  '/change-password',
+
+// @route   DELETE /api/users/delete
+// @desc    Delete current logged-in user (buyer or seller)
+// @access  Private
+router.delete(
+  '/me',
   passport.authenticate('jwt', { session: false }),
-  async (req, res, next) => {
-    const validation = validateChangePasswordInput(req.body)
-
-    if (!validation.success) {
-      return res.status(400).json(validation)
-    }
-
-    const { currentPassword, newPassword, confirmNewPassword } = req.body
-
+  async (req, res) => {
     try {
-      const user = await User.findById(req.user.id)
+      const userId = req.user.id
 
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: 'User not found',
-          },
-        })
+      // Optional: If seller, remove their books too
+      if (req.user.role.includes('seller')) {
+        await Book.deleteMany({ author: userId })
       }
 
-      const isMatch = await bcrypt.compare(currentPassword, user.password)
-      if (!isMatch) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            message: 'Validation failed',
-            details: {
-              currentPassword: 'Current password is incorrect.',
-            },
-          },
-        })
-      }
+      await User.findByIdAndDelete(userId)
 
-      const isSamePassword = await bcrypt.compare(newPassword, user.password)
-      if (isSamePassword) {
-        return res.status(400).json({
-          success: false,
-          error: {
-            message: 'Validation failed',
-            details: {
-              newPassword:
-                'New password must be different from the current password.',
-            },
-          },
-        })
-      }
-
-      const salt = await bcrypt.genSalt(10)
-      const hashedPassword = await bcrypt.hash(newPassword, salt)
-
-      user.password = hashedPassword
-      await user.save()
-
-      return res
+      res
         .status(200)
-        .json({ success: true, message: 'Password changed successfully.' })
+        .json({ message: 'Your account has been deleted successfully.' })
     } catch (error) {
-      next(error)
+      console.error('Error deleting user:', error)
+      res.status(500).json({
+        success: false,
+        error: {
+          message: 'Server error',
+          details: error.message,
+        },
+      })
     }
   }
 )
-
 export default router
