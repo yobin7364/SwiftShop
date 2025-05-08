@@ -35,12 +35,6 @@ export const validateBook = (data) => {
         }
         return genres
       }),
-    // _genres: Joi.array().items(Joi.string()).min(1).required().messages({
-    //   'array.base': 'Genres must be an array of strings',
-    //   'array.min': 'At least one genre is required',
-    //   'any.required': 'Genres field is required',
-    // }),
-
     description: Joi.string().trim().allow('').messages({
       'string.empty': 'Description cannot be empty.',
     }),
@@ -48,31 +42,40 @@ export const validateBook = (data) => {
       'string.uri': 'Cover image must be a valid URL.',
       'any.required': 'Cover image is required.',
     }),
-    filePath: Joi.string()
-      .uri()
-      .required()
-      .messages({
-        'string.uri': 'File path must be a valid URL.',
-        'any.required': 'File path is required.',
-      })
-      .required(),
-    publisher: Joi.string().optional(),
-    isbn: Joi.string().required().messages({
-      'string.empty': 'ISBN is required.',
+    filePath: Joi.string().uri().required().messages({
+      'string.uri': 'File path must be a valid URL.',
+      'any.required': 'File path is required.',
     }),
+    publisher: Joi.string().optional(),
+    isbn: Joi.string()
+      .pattern(/^(?:\d{9}[\dXx]|\d{13})$/)
+      .allow('', null)
+      .messages({
+        'string.pattern.base':
+          'ISBN must be a valid ISBN-10 or ISBN-13 number.',
+      }),
     releaseDate: Joi.date().iso().required().messages({
       'date.base': 'Release date must be a valid ISO date.',
       'any.required': 'Release date is required.',
     }),
   })
 
-  const { error } = schema.validate(data, { abortEarly: false }) // Capture all errors
-  const errors = error
-    ? error.details.reduce((acc, curr) => {
-        acc[curr.path[0]] = curr.message // Map each error to its field
-        return acc
-      }, {})
-    : {}
+  const { error } = schema.validate(data, { abortEarly: false })
 
-  return { errors, isValid: !error } // Return errors and isValid
+  if (error) {
+    const details = error.details.reduce((acc, curr) => {
+      acc[curr.path[0]] = curr.message
+      return acc
+    }, {})
+
+    return {
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details,
+      },
+    }
+  }
+
+  return { success: true }
 }

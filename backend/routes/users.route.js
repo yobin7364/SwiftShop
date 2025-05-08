@@ -71,14 +71,10 @@ router.post('/register', async (req, res) => {
 // @access Public
 router.post('/login', (req, res) => {
   // Validate input
-  const { errors, isValid } = validateLoginInput(req.body)
+  const validation = validateLoginInput(req.body)
 
-  // Check if validation fails
-  if (!isValid) {
-    return res.status(400).json({
-      success: false,
-      errors,
-    })
+  if (!validation.success) {
+    return res.status(400).json(validation)
   }
 
   const { email, password, role: selectedRole } = req.body
@@ -222,66 +218,125 @@ router.patch(
 router.patch(
   '/change-password',
   passport.authenticate('jwt', { session: false }),
-  async (req, res) => {
-    const { errors, isValid } = validateChangePasswordInput(req.body)
+  async (req, res, next) => {
+    const validation = validateChangePasswordInput(req.body)
 
-    if (!isValid) {
-      return res.status(400).json({ errors })
+    if (!validation.success) {
+      return res.status(400).json(validation)
     }
 
     const { currentPassword, newPassword, confirmNewPassword } = req.body
-
-    // Validate input
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'All fields are required.' })
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be at least 6 characters long.',
-      })
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password and confirm password do not match.',
-      })
-    }
 
     try {
       const user = await User.findById(req.user.id)
 
       if (!user) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'User not found.' })
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'User not found',
+          },
+        })
       }
 
-      // Check if currentPassword is correct
       const isMatch = await bcrypt.compare(currentPassword, user.password)
       if (!isMatch) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Current password is incorrect.' })
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            details: {
+              currentPassword: 'Current password is incorrect.',
+            },
+          },
+        })
       }
-      // Check if new password is same as old password
+
       const isSamePassword = await bcrypt.compare(newPassword, user.password)
       if (isSamePassword) {
         return res.status(400).json({
           success: false,
-          message: 'New password must be different from the current password.',
+          error: {
+            message: 'Validation failed',
+            details: {
+              newPassword:
+                'New password must be different from the current password.',
+            },
+          },
         })
       }
 
-      // Hash new password
       const salt = await bcrypt.genSalt(10)
       const hashedPassword = await bcrypt.hash(newPassword, salt)
 
-      // Update password
+      user.password = hashedPassword
+      await user.save()
+
+      return res
+        .status(200)
+        .json({ success: true, message: 'Password changed successfully.' })
+    } catch (error) {
+      next(error)
+    }
+  }
+)
+//@route   PATCH /api/users/change-password
+//@desc    Change password for the logged-in user
+//@access  Private
+router.patch(
+  '/change-password',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res, next) => {
+    const validation = validateChangePasswordInput(req.body)
+
+    if (!validation.success) {
+      return res.status(400).json(validation)
+    }
+
+    const { currentPassword, newPassword, confirmNewPassword } = req.body
+
+    try {
+      const user = await User.findById(req.user.id)
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'User not found',
+          },
+        })
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password)
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            details: {
+              currentPassword: 'Current password is incorrect.',
+            },
+          },
+        })
+      }
+
+      const isSamePassword = await bcrypt.compare(newPassword, user.password)
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            message: 'Validation failed',
+            details: {
+              newPassword:
+                'New password must be different from the current password.',
+            },
+          },
+        })
+      }
+
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(newPassword, salt)
+
       user.password = hashedPassword
       await user.save()
 
