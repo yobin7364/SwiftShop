@@ -139,7 +139,6 @@ router.get(
         recentReviews,
       })
     } catch (error) {
-      console.error('Error fetching seller dashboard:', error)
       next(error)
     }
   }

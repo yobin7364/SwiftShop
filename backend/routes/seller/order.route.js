@@ -18,26 +18,39 @@ router.post(
     const { bookId } = req.body
 
     if (!bookId || !mongoose.Types.ObjectId.isValid(bookId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid or missing book ID.' })
+      return res.status(400).json({
+        success: false,
+        error: {
+          details: {
+            bookId: 'Invalid or missing book ID.',
+          },
+        },
+      })
     }
 
     try {
       const book = await Book.findById(bookId)
       if (!book) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Book not found.' })
+        return res.status(404).json({
+          success: false,
+          error: {
+            details: {
+              seller: 'Book not found',
+            },
+          },
+        })
       }
 
       if (!book.author) {
         return res.status(400).json({
           success: false,
-          message: 'Book does not have a valid seller.',
+          error: {
+            details: {
+              seller: 'Book does not have a valid seller',
+            },
+          },
         })
       }
-
       const newOrder = new Order({
         book: book._id,
         seller: new mongoose.Types.ObjectId(book.author),
