@@ -41,6 +41,8 @@ const BookSchema = new Schema(
     },
     coverImage: {
       type: String, // Store URL or path to the cover image (S3 URL possible)
+      default:
+        'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=500&q=80',
     },
     publisher: {
       type: String, // Optional publisher field
