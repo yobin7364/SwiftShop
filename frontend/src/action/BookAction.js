@@ -17,3 +17,19 @@ export const searchBooks = createAsyncThunk(
     }
   }
 );
+
+export const freeBooks = createAsyncThunk(
+  "books/free",
+  async ({ limit = 6, page = 1 }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get(
+        `api/book/free?page=${page}&limit=${limit}`
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Loading Free Books failed"
+      );
+    }
+  }
+);
