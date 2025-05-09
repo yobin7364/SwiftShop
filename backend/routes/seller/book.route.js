@@ -11,6 +11,7 @@ import { expressjwt } from 'express-jwt'
 import keys from '../../config/keys.config.js'
 import { genresList } from '../../config/genresList.js'
 import { errorHandler } from '../../middleware/errorHandler.js'
+import { validateBookQuery } from '../../validator/bookQuery.validator.js'
 const router = express.Router()
 
 const DEFAULT_COVER_IMAGE = 'https://yourcdn.com/images/default-book-cover.jpg'
@@ -192,23 +193,38 @@ router.patch(
       let { publish } = req.body // could be boolean, string, or missing
 
       if (!mongoose.Types.ObjectId.isValid(bookId)) {
-        return res
-          .status(400)
-          .json({ success: false, message: 'Invalid book ID.' })
+        return res.status(400).json({
+          success: false,
+          error: {
+            details: {
+              bookId: 'Invalid book id',
+            },
+          },
+        })
       }
 
       const book = await Book.findById(bookId)
       if (!book) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Book not found.' })
+        return res.status(404).json({
+          success: false,
+          error: {
+            details: {
+              book: 'Book not found',
+            },
+          },
+        })
       }
 
       // Check if the current user is the author of the book
       if (book.author.toString() !== req.user.id) {
-        return res
-          .status(403)
-          .json({ success: false, message: 'Unauthorized: Not your book.' })
+        return res.status(403).json({
+          success: false,
+          error: {
+            details: {
+              auth: 'Unauthorized: Not your book',
+            },
+          },
+        })
       }
 
       // 🔒 Coerce string 'true'/'false' → boolean
@@ -219,7 +235,11 @@ router.patch(
       if (typeof publish !== 'boolean') {
         return res.status(400).json({
           success: false,
-          message: 'Invalid "publish" value. Must be true or false.',
+          error: {
+            details: {
+              publish: 'Invalid "publish" value. Must be true or false.',
+            },
+          },
         })
       }
 
@@ -251,9 +271,14 @@ router.patch(
     const { discountPercentage, discountStart, discountEnd } = req.body
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid book ID' })
+      return res.status(400).json({
+        success: false,
+        error: {
+          details: {
+            id: 'Invalid book ID',
+          },
+        },
+      })
     }
 
     if (
@@ -263,7 +288,12 @@ router.patch(
     ) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid discount percentage (must be between 1 and 100)',
+        error: {
+          details: {
+            discountPercentage:
+              'Invalid discount percentage (must be between 1 and 100)',
+          },
+        },
       })
     }
 
@@ -278,15 +308,24 @@ router.patch(
       const book = await Book.findById(id)
 
       if (!book) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Book not found' })
+        return res.status(404).json({
+          success: false,
+          error: {
+            details: {
+              book: 'Book not found',
+            },
+          },
+        })
       }
 
       if (!book.author.equals(req.user.id)) {
         return res.status(403).json({
           success: false,
-          message: 'Unauthorized to set discount for this book',
+          error: {
+            details: {
+              auth: 'Unauthorized to set discount for this book',
+            },
+          },
         })
       }
 
@@ -436,8 +475,16 @@ router.get(
   '/myBooks',
   passport.authenticate('jwt', { session: false }),
   async (req, res, next) => {
-    const page = Math.max(1, parseInt(req.query.page) || 1) // Always at least page 1
-    const limit = Math.max(1, parseInt(req.query.limit) || 10) // Default 10 books per page
+    const validation = validateBookQuery(req.query)
+
+    if (!validation.success) {
+      const error = new Error('Validation failed')
+      error.status = 400
+      error.details = validation.error.details
+      return next(error)
+    }
+
+    const { page, limit } = validation.value
     const skip = (page - 1) * limit
 
     try {
@@ -452,10 +499,16 @@ router.get(
       })
 
       if (books.length === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'No books found for this user' })
+        return res.status(404).json({
+          success: false,
+          error: {
+            details: {
+              author: 'No books found for this user',
+            },
+          },
+        })
       }
+
       const booksDetails = books.map((book) => ({
         _id: book._id,
         title: book.title,
@@ -621,19 +674,23 @@ router.get('/free', async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 10
 
   try {
-    const books = await Book.find({ price: 0 })
+    const books = await Book.find({ price: 0, isPublished: true })
       .populate('author', 'name email')
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 })
 
-    const total = await Book.countDocuments({ price: 0 })
+    const total = await Book.countDocuments({ price: 0, isPublished: true })
+    const totalPages = Math.ceil(total / limit)
 
     res.status(200).json({
       success: true,
       message: 'Free books retrieved successfully',
-      books,
       total,
+      books,
+      currentPage: page,
+      pageSize: limit,
+      totalPages,
     })
   } catch (error) {
     next(error)
@@ -698,17 +755,31 @@ router.get('/genre/:genre', async (req, res, next) => {
     next(error)
   }
 })
+
+//Get a single book
 router.get('/:id', optionalAuth, async (req, res, next) => {
   const { id } = req.params
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid book ID' })
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details: { id: 'Invalid book ID' },
+      },
+    })
   }
 
   try {
     const book = await Book.findById(id).populate('author', 'name email')
     if (!book) {
-      return res.status(404).json({ success: false, message: 'Book not found' })
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: { id: 'Invalid book ID' },
+        },
+      })
     }
 
     const now = new Date()
@@ -717,9 +788,15 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     const isOwner = req.user && book.author._id.toString() === req.user.id
 
     if (!isPublic && !isOwner) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Book not released yet' })
+      return res.status(403).json({
+        success: false,
+        error: {
+          message: 'Access denied',
+          details: {
+            book: 'Book is not yet released or accessible by this user',
+          },
+        },
+      })
     }
 
     const bookObj = book.toObject()
@@ -743,10 +820,14 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 
 //@route  GET /api/book
 //@desc   Get all books with pagination
-//@access Public
 router.get('/', async (req, res, next) => {
-  const page = parseInt(req.query.page) || 1
-  const limit = parseInt(req.query.limit) || 10
+  const validation = validateBookQuery(req.query)
+
+  if (!validation.success) {
+    return res.status(400).json(validation)
+  }
+
+  const { page, limit } = validation.value
 
   try {
     const rawBooks = await Book.find({
@@ -770,13 +851,12 @@ router.get('/', async (req, res, next) => {
       currentPage: page,
       pageSize: limit,
       totalBooks: total,
-      totalPages: totalPages,
+      totalPages,
     })
   } catch (error) {
     next(error)
   }
 })
-
 //@route  POST /api/book
 //@desc   Create a new book
 //@access Private (Only sellers)
@@ -785,11 +865,9 @@ router.post(
   passport.authenticate('jwt', { session: false }),
   authorizeRoles('seller'),
   async (req, res, next) => {
-    const { errors, isValid } = validateBook(req.body)
-    if (!isValid) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid fields', errors })
+    const validation = validateBook(req.body)
+    if (!validation.success) {
+      return res.status(400).json(validation)
     }
 
     try {
@@ -837,19 +915,21 @@ router.put(
   '/:bookId',
   passport.authenticate('jwt', { session: false }),
   async (req, res, next) => {
-    const { errors, isValid } = validateBook(req.body)
-    if (!isValid) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid Fields', errors })
+    const validation = validateBook(req.body)
+    if (!validation.success) {
+      return res.status(400).json(validation)
     }
 
     const { bookId } = req.params
 
     if (!mongoose.Types.ObjectId.isValid(bookId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid book ID' })
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: { bookId: 'Invalid book ID' },
+        },
+      })
     }
 
     const {
@@ -958,26 +1038,37 @@ router.delete(
   async (req, res, next) => {
     const { bookId } = req.params
     const userId = req.user.id
-
     if (!mongoose.Types.ObjectId.isValid(bookId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Invalid book ID' })
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: { bookId: 'Invalid book ID' },
+        },
+      })
     }
 
     try {
       const book = await Book.findById(bookId)
 
       if (!book) {
-        return res
-          .status(404)
-          .json({ success: false, message: 'Book not found' })
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Book not found',
+            details: { bookId: 'No book found with this ID' },
+          },
+        })
       }
 
       if (!book.author.equals(userId)) {
-        return res
-          .status(403)
-          .json({ success: false, message: 'Unauthorized to delete this book' })
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: 'Unauthorized',
+            details: { user: 'You do not have permission to delete this book' },
+          },
+        })
       }
 
       await Book.findByIdAndDelete(bookId)
@@ -1004,13 +1095,25 @@ router.post('/:id/review', reviewLimiter, async (req, res, next) => {
   const { comment, rating } = req.body
 
   if (!mongoose.Types.ObjectId.isValid(bookId)) {
-    return res.status(400).json({ success: false, message: 'Invalid book ID' })
+    return res.status(400).json({
+      success: false,
+      error: {
+        details: {
+          id: 'Invalid book id',
+        },
+      },
+    })
   }
 
   if (!comment || typeof comment !== 'string' || comment.trim() === '') {
-    return res
-      .status(400)
-      .json({ success: false, message: 'Comment is required' })
+    return res.status(400).json({
+      success: false,
+      error: {
+        details: {
+          comment: 'Comment is required',
+        },
+      },
+    })
   }
 
   const sanitizedComment = sanitizeHtml(comment.trim())
@@ -1021,7 +1124,14 @@ router.post('/:id/review', reviewLimiter, async (req, res, next) => {
   try {
     const book = await Book.findById(bookId)
     if (!book) {
-      return res.status(404).json({ success: false, message: 'Book not found' })
+      return res.status(404).json({
+        success: false,
+        error: {
+          details: {
+            id: 'Book not found',
+          },
+        },
+      })
     }
 
     // Add anonymous review
@@ -1046,26 +1156,40 @@ router.post('/:id/review', reviewLimiter, async (req, res, next) => {
     next(error)
   }
 })
-//@route  GET /api/book/:id/reviews
-//@desc   Get all reviews + average rating for a book
-//@access Public
+
 router.get('/:id/reviews', async (req, res, next) => {
   const { id } = req.params
 
-  const page = Math.max(1, parseInt(req.query.page) || 1)
-  const limit = Math.max(1, parseInt(req.query.limit) || 5) // Default 5 reviews per page
+  // Validate pagination query
+  const validation = validateBookQuery(req.query)
+  if (!validation.success) {
+    const err = new Error('Validation failed')
+    err.status = 400
+    err.details = validation.error.details
+    return next(err)
+  }
+
+  const { page, limit } = validation.value
   const skip = (page - 1) * limit
 
+  // Validate ObjectId
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid book ID' })
+    const err = new Error('Invalid book ID')
+    err.status = 400
+    err.details = { id: 'Book ID must be valid' }
+    return next(err)
   }
 
   try {
     const book = await Book.findById(id)
 
     if (!book) {
-      return res.status(404).json({ success: false, message: 'Book not found' })
+      const err = new Error('Book not found')
+      err.status = 404
+      err.details = { id: 'Book id is required' }
+      return next(err)
     }
+
     const sortedReviews = book.reviews.sort((a, b) => b.createdAt - a.createdAt)
 
     const paginatedReviews = sortedReviews.slice(skip, skip + limit)

@@ -22,12 +22,19 @@ export const validateChangePasswordInput = (data) => {
   })
 
   const { error } = schema.validate(data, { abortEarly: false }) // Capture all errors
-  const errors = error
-    ? error.details.reduce((acc, curr) => {
-        acc[curr.path[0]] = curr.message
-        return acc
-      }, {})
-    : {}
+  if (error) {
+    const details = error.details.reduce((acc, curr) => {
+      acc[curr.path[0]] = curr.message
+      return acc
+    }, {})
 
-  return { errors, isValid: !error }
+    return {
+      success: false,
+      error: {
+        details,
+      },
+    }
+  }
+
+  return { success: true }
 }

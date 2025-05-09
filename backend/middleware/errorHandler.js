@@ -1,7 +1,14 @@
 // backend/middleware/errorHandler.js
 
 export const errorHandler = (err, req, res, next) => {
-  console.error('❌ Server Error:', err)
+  if (err.details && typeof err.details === 'object') {
+    return res.status(err.status || 400).json({
+      success: false,
+      error: {
+        details: err.details,
+      },
+    })
+  }
 
   // Handle Mongoose duplicate key error
   if (err.code === 11000) {
@@ -10,26 +17,39 @@ export const errorHandler = (err, req, res, next) => {
 
     return res.status(400).json({
       success: false,
-      message: `Duplicate ${field} entered`,
-      field,
-      value,
+      error: {
+        details: {
+          [field]: `Duplicate value: '${value}' is already used.`,
+        },
+      },
     })
   }
 
-  // Handle validation errors (optional)
+  // Handle Mongoose validation error
   if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map((e) => e.message)
+    const details = Object.entries(err.errors).reduce((acc, [field, val]) => {
+      acc[field] = val.message
+      return acc
+    }, {})
+
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
-      errors,
+      error: {
+        details,
+      },
     })
   }
 
-  // Fallback for all other server errors
-  res.status(500).json({
+  // Fallback for all other errors
+  return res.status(err.status || 500).json({
     success: false,
-    message: 'Server error',
-    error: process.env.NODE_ENV === 'production' ? undefined : err.message,
+    error: {
+      details: {
+        server:
+          process.env.NODE_ENV === 'production'
+            ? 'Something went wrong'
+            : err.message,
+      },
+    },
   })
 }
