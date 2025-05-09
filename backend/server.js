@@ -10,7 +10,7 @@ import initializePassport from './config/passport.config.js'
 import orderRoutes from './routes/seller/order.route.js'
 import dashboardRoutes from './routes/seller/dashboard.route.js'
 import { errorHandler } from '../backend/middleware/errorHandler.js'
-
+import './jobs/publishBooks.js'
 dotenv.config()
 
 const app = express()
