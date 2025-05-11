@@ -1,13 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "../redux/authSlice"; // Import the auth slice
-import searchBookReducer from "../redux/searchBookSlice";
+import authReducer from "../redux/authSlice";
 import bookReducer from "../redux/bookSlice";
+import toastReducer from "../redux/toastSlice";
 
 const store = configureStore({
   reducer: {
     auth: authReducer, // Register the auth slice
-    searchBooks: searchBookReducer,
     books: bookReducer,
+    toast: toastReducer,
   },
 });
 

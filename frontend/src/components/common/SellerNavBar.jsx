@@ -11,12 +11,10 @@ import SearchIcon from "@mui/icons-material/Search";
 import colors from "../pages/buyer/styles/colors";
 import Button from "@mui/material/Button";
 import { useNavigate } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
 import LoginIcon from "@mui/icons-material/Login";
 import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
 import { AccountCircle } from "@mui/icons-material";
 import { Menu, MenuItem } from "@mui/material";
-import { searchBooks } from "../../action/BookAction";
 import { SellerDrawer } from "./SellerDrawer";
 
 const Search = styled("div")(({ theme }) => ({
@@ -60,9 +58,6 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 export default function SellerNavBar() {
-  const dispatch = useDispatch();
-  const [searchTerm, setSearchTerm] = useState("");
-
   const navigate = useNavigate();
 
   return (

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -9,29 +9,87 @@ import {
   Grid,
   Divider,
   CircularProgress,
+  Skeleton,
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
-import RatingsAndReviews from "./RatingsAndReviews";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { getSingleBookAction } from "../../../../action/BookAction";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
 const BookDetail = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [paymentStatus, setPaymentStatus] = useState("idle"); // idle | processing | success
+  const { bookID } = useParams();
+
+  const [paymentStatus, setPaymentStatus] = useState("idle");
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  const {
+    singleBook: { book } = {},
+    loadingSingleBooks: isLoading,
+    errorSigleBooks: error,
+  } = useSelector((state) => state.books);
+
+  useEffect(() => {
+    dispatch(getSingleBookAction({ bookID }));
+  }, [dispatch, bookID]);
 
   const handleBuyNow = () => {
     setPaymentStatus("processing");
-
-    // Simulate payment processing
     setTimeout(() => {
       setPaymentStatus("success");
-
-      // Redirect after a short delay
       setTimeout(() => {
         navigate("/");
-      }, 1000); // 1 second after showing success
-    }, 2000); // 2 seconds processing
+      }, 1000);
+    }, 2000);
   };
+
+  if (isLoading) {
+    return (
+      <Box p={4} sx={{ paddingTop: 10 }}>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={4}>
+            <Skeleton variant="rectangular" height={400} width="100%" />
+          </Grid>
+          <Grid item xs={12} md={8}>
+            <Skeleton variant="text" height={60} width="80%" />
+            <Skeleton variant="text" height={30} width="60%" />
+            <Skeleton variant="text" height={30} width="30%" sx={{ mt: 2 }} />
+            <Skeleton
+              variant="rectangular"
+              height={40}
+              width={150}
+              sx={{ mt: 2 }}
+            />
+            <Skeleton variant="text" height={20} width="50%" sx={{ mt: 2 }} />
+          </Grid>
+        </Grid>
+        <Skeleton variant="text" height={30} width="30%" sx={{ mt: 4 }} />
+        <Skeleton variant="rectangular" height={150} sx={{ mt: 2 }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={4} sx={{ paddingTop: 10 }}>
+        <Typography color="error">Error: {error}</Typography>
+      </Box>
+    );
+  }
+
+  if (!book) {
+    return (
+      <Box p={4} sx={{ paddingTop: 10 }}>
+        <Typography>No book found.</Typography>
+      </Box>
+    );
+  }
+
+  const discountedPrice =
+    book.discountPercentage > 0
+      ? (book.price * (1 - book.discountPercentage / 100)).toFixed(2)
+      : book.price;
 
   return (
     <Box p={4} className="main-container" sx={{ paddingTop: 10 }}>
@@ -39,8 +97,8 @@ const BookDetail = () => {
         {/* Book Cover */}
         <Grid item xs={12} md={4}>
           <img
-            src="https://plus.unsplash.com/premium_photo-1682125773446-259ce64f9dd7?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-            alt="The Light of All That Falls"
+            src={book.coverImage}
+            alt={book.title}
             style={{ width: "100%", borderRadius: 8 }}
           />
         </Grid>
@@ -48,44 +106,42 @@ const BookDetail = () => {
         {/* Book Info */}
         <Grid item xs={12} md={8}>
           <Typography variant="h4" fontWeight="bold">
-            The Light of All That Falls
+            {book.title}
           </Typography>
           <Typography variant="subtitle1" mt={1}>
-            By <strong>James Islington</strong>
+            By <strong>{book.author.name}</strong>
           </Typography>
 
-          <Box
-            mt={2}
-            display="flex"
-            alignItems="center"
-            sx={{ width: "100%" }}
-            gap={2}
-          >
+          <Box mt={2} display="flex" alignItems="center" gap={2}>
             <Box display="flex" alignItems="center" gap={1}>
               <Typography variant="body2" fontWeight="bold">
-                4.5
+                {book.averageRating || 0}
               </Typography>
-              <Rating name="book-rating" value={4.5} precision={0.5} readOnly />
+              <Rating
+                name="book-rating"
+                value={book.averageRating || 0}
+                precision={0.5}
+                readOnly
+              />
             </Box>
-
-            {/* Right side: Total Reviews */}
             <Typography variant="body2" color="secondary">
-              32 Reviews
+              {book.reviews.length} Reviews
             </Typography>
           </Box>
 
           <Typography variant="h5" mt={2} color="primary.main">
-            $25.00{" "}
-            <Typography
-              variant="body2"
-              component="span"
-              sx={{ textDecoration: "line-through", ml: 1 }}
-            >
-              $30.00
-            </Typography>
+            ${discountedPrice}
+            {book.discountPercentage > 0 && (
+              <Typography
+                variant="body2"
+                component="span"
+                sx={{ textDecoration: "line-through", ml: 1 }}
+              >
+                ${book.price}
+              </Typography>
+            )}
           </Typography>
 
-          {/* Button and Success Message */}
           <Box mt={2} display="flex" flexDirection="column" gap={1}>
             <Box position="relative" display="inline-flex">
               <Button
@@ -93,12 +149,10 @@ const BookDetail = () => {
                 color="primary"
                 onClick={handleBuyNow}
                 disabled={!isAuthenticated || paymentStatus !== "idle"}
-                sx={{ minWidth: 150 }} // Make button minimum width so spinner doesn't shrink
+                sx={{ minWidth: 150 }}
               >
                 {paymentStatus === "processing" ? "Processing..." : "Buy Now"}
               </Button>
-
-              {/* Spinner when processing */}
               {paymentStatus === "processing" && (
                 <CircularProgress
                   size={24}
@@ -126,60 +180,90 @@ const BookDetail = () => {
             )}
           </Box>
 
-          <Box mt={2}>
-            <Chip icon={<LocalOfferIcon />} label="Fantasy" sx={{ mr: 1 }} />
-            <Chip label="Bestseller" color="secondary" />
+          <Box mt={2} display="flex" flexWrap="wrap" gap={1}>
+            <Chip icon={<LocalOfferIcon />} label={book.category} />
+            {book.genres.map((g, i) => (
+              <Chip key={i} label={g} />
+            ))}
           </Box>
         </Grid>
       </Grid>
 
-      {/* Other Sections (Description, Details, About the Author, Reviews) */}
+      {/* Description */}
       <Box mt={3}>
-        <Typography variant="h6" color="text.primary" gutterBottom>
+        <Typography variant="h6" gutterBottom>
           Description
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          This is a brief description of the book, summarizing the plot and key
-          points to give the reader an overview of what to expect.
+          {book.description}
         </Typography>
       </Box>
 
       <Divider sx={{ my: 2 }} />
 
+      {/* Details */}
       <Box mt={3}>
-        <Typography variant="h6" color="text.primary" gutterBottom>
+        <Typography variant="h6" gutterBottom>
           Details
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          <strong>Author:</strong> John Doe
+        <Typography variant="body2">
+          <strong>Author:</strong> {book.author.name}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          <strong>Publisher:</strong> ABC Publishing
+        <Typography variant="body2">
+          <strong>Publisher:</strong> {book.publisher}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          <strong>ISBN:</strong> 978-1234567890
+        <Typography variant="body2">
+          <strong>ISBN:</strong> {book.isbn}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          <strong>Release Date:</strong> January 2025
+        <Typography variant="body2">
+          <strong>Release Date:</strong> {book.releaseDateFormatted}
         </Typography>
       </Box>
 
-      <Divider sx={{ my: 2 }} />
+      {/* <Divider sx={{ my: 2 }} /> */}
 
-      <Box mt={3}>
-        <Typography variant="h6" color="text.primary" gutterBottom>
+      {/* About Author */}
+      {/* <Box mt={3}>
+        <Typography variant="h6" gutterBottom>
           About the Author
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          John Doe is an experienced writer who specializes in fantasy novels.
-          His books have been featured on numerous bestseller lists, and his
-          captivating storytelling has earned him a dedicated following.
+          {book.author.name} is a talented writer known for their unique
+          storytelling and contributions to {book.category} literature.
         </Typography>
-      </Box>
+      </Box> */}
 
       <Divider sx={{ my: 2 }} />
 
-      <RatingsAndReviews />
+      {/* Ratings and Reviews */}
+      <Box mt={5}>
+        <Typography variant="h6" color="text.primary" gutterBottom>
+          Ratings & Reviews
+        </Typography>
+
+        {book?.reviews?.length === 0 ? (
+          <Typography variant="h7" color="text.secondary" gutterBottom>
+            No Ratings & Reviews
+          </Typography>
+        ) : (
+          book?.reviews?.map((review, index) => (
+            <Box key={index} mb={2}>
+              <Rating value={review.rating} readOnly size="small" />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                display="flex"
+                alignItems="center"
+                gap={1}
+              >
+                <em>"{review.comment}"</em> —
+                <PersonOutlineIcon fontSize="small" />
+                {review.user}
+              </Typography>
+            </Box>
+          ))
+        )}
+      </Box>
     </Box>
   );
 };

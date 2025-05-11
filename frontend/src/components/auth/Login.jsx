@@ -17,14 +17,14 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-// import { setError } from "../../slice/authSlice"; // optional: clear or set errors
 import { setCurrentUser } from "../../redux/authSlice";
 import { loginUser } from "../../action/authAction";
+import { showToast } from "../../redux/toastSlice"; // ✅ global toast action
 
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -40,21 +40,19 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
-      // Attempt to login and unwrap the result (this will throw an error if rejected)
       const decoded = await dispatch(loginUser(data)).unwrap();
 
-      // set current user
       dispatch(setCurrentUser(decoded));
+      dispatch(
+        showToast({ message: "Login successful!", severity: "success" })
+      );
 
-      // Navigate to dashboard if login is successful
-
-      if (data.role == "buyer") {
+      if (data.role === "buyer") {
         navigate("/");
       } else {
         navigate("/dashboardPage");
       }
     } catch (err) {
-      // Handle known validation errors from API (i.e., errors returned from your API)
       if (err) {
         if (err.email) {
           setFieldError("email", {
@@ -68,7 +66,6 @@ const Login = () => {
             message: err.password,
           });
         }
-
         if (err.role) {
           setFieldError("role", {
             type: "manual",
@@ -76,8 +73,9 @@ const Login = () => {
           });
         }
       } else {
-        // Unexpected error (network issues, server issues, etc.)
-        console.error("Unexpected error:", err);
+        dispatch(
+          showToast({ message: "Something went wrong", severity: "error" })
+        );
       }
     }
   };
@@ -102,7 +100,7 @@ const Login = () => {
             width: "100%",
             boxShadow: 3,
             borderRadius: 2,
-            backgroundColor: "#f9f9f9", // off-white
+            backgroundColor: "#f9f9f9",
           }}
         >
           <Typography variant="h5" component="h2">
@@ -146,7 +144,6 @@ const Login = () => {
               helperText={errors.password?.message}
             />
 
-            {/* Role selection */}
             <FormLabel sx={{ mt: 2 }}>Role</FormLabel>
             <Controller
               name="role"

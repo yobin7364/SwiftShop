@@ -58,3 +58,22 @@ export const currentUserInfo = createAsyncThunk(
     }
   }
 );
+
+// Change Password
+export const changeUserPassword = createAsyncThunk(
+  "users/changePassword",
+  async (userData, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.patch(
+        "/api/users/change-password",
+        userData
+      );
+
+      return data; // Success response
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to change "
+      );
+    }
+  }
+);

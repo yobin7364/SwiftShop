@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useForm, Controller } from "react-hook-form";
+import React from "react";
 import {
   Container,
   TextField,
@@ -15,20 +13,18 @@ import {
   Paper,
   Link,
   CircularProgress,
-  Snackbar,
 } from "@mui/material";
-import { registerUser } from "../../action/authAction";
+import { useDispatch, useSelector } from "react-redux";
+import { useForm, Controller } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import CommonToast from "../common/CommonToast";
+import { registerUser } from "../../action/authAction";
+import { showToast } from "../../redux/toastSlice"; // Import global toast
 
 const Register = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // For navigation
+  const navigate = useNavigate();
+  const { loading } = useSelector((state) => state.auth);
 
-  // Get the loading and error state from Redux
-  const { loading, error } = useSelector((state) => state.auth);
-
-  // Set up React Hook Form with default values
   const {
     register,
     handleSubmit,
@@ -38,62 +34,34 @@ const Register = () => {
     setError,
   } = useForm({
     defaultValues: {
-      role: "buyer", // Set "buyer" as the default role
+      role: "buyer",
     },
   });
 
-  // For snack bar Start
-
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setOpenSnackbar(true);
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
-
-  // For snack Bar end
-
   const onSubmit = async (data) => {
     try {
-      await dispatch(registerUser(data)).unwrap(); // use unwrap if using createAsyncThunk
+      await dispatch(registerUser(data)).unwrap();
 
-      showSnackbar("Registration successful!", "success"); // 👈 show Toast first
+      dispatch(
+        showToast({ message: "Registration successful!", severity: "success" })
+      );
 
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      navigate("/login");
     } catch (err) {
-      // Handle known validation errors from API
-
       if (err) {
         if (err.email) {
-          setError("email", {
-            type: "manual",
-            message: err.email,
-          });
+          setError("email", { type: "manual", message: err.email });
         }
         if (err.password) {
-          setError("password", {
-            type: "manual",
-            message: err.password,
-          });
+          setError("password", { type: "manual", message: err.password });
         }
         if (err.password2) {
-          setError("password2", {
-            type: "manual",
-            message: err.password2,
-          });
+          setError("password2", { type: "manual", message: err.password2 });
         }
       } else {
-        // Unexpected error (network, server down, etc.)
-        console.error("Unexpected error:", err);
+        dispatch(
+          showToast({ message: "Something went wrong", severity: "error" })
+        );
       }
     }
   };
@@ -190,7 +158,7 @@ const Register = () => {
               helperText={errors.password2?.message}
             />
 
-            {/* Role selection for Buyer or Seller */}
+            {/* Role selection */}
             <FormLabel sx={{ mt: 2 }}>Role</FormLabel>
             <Controller
               name="role"
@@ -215,14 +183,13 @@ const Register = () => {
               <Alert severity="error">{errors.role?.message}</Alert>
             )}
 
-            {/* Display the loading spinner when the form is submitting */}
             <Button
               fullWidth
               variant="contained"
               color="primary"
               type="submit"
               sx={{ mt: 2 }}
-              disabled={loading} // Disable button when loading
+              disabled={loading}
             >
               {loading ? (
                 <CircularProgress size={24} color="secondary" />
@@ -240,13 +207,6 @@ const Register = () => {
           </Typography>
         </Paper>
       </Box>
-
-      <CommonToast
-        open={openSnackbar}
-        message={snackbarMessage}
-        severity={snackbarSeverity}
-        onClose={handleCloseSnackbar}
-      />
     </Container>
   );
 };

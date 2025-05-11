@@ -1,16 +1,20 @@
-// src/components/Toast.js
 import React from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { Snackbar, Alert } from "@mui/material";
+import { hideToast } from "../../redux/toastSlice";
 
-const CommonToast = ({ open, message, severity = "success", onClose }) => {
+const CommonToast = () => {
+  const dispatch = useDispatch();
+  const { open, message, severity } = useSelector((state) => state.toast);
+
   return (
     <Snackbar
       open={open}
       autoHideDuration={3000}
-      onClose={onClose}
+      onClose={() => dispatch(hideToast())}
       anchorOrigin={{ vertical: "top", horizontal: "right" }}
     >
-      <Alert onClose={onClose} severity={severity} sx={{ width: "100%" }}>
+      <Alert severity={severity} variant="filled">
         {message}
       </Alert>
     </Snackbar>

@@ -113,7 +113,7 @@ export default function BuyerBooks() {
       }}
     >
       <Typography variant="h4" gutterBottom>
-        Your Books
+        My Books
       </Typography>
 
       <Grid container spacing={3}>

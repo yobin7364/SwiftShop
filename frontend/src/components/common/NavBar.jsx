@@ -18,7 +18,6 @@ import LoginIcon from "@mui/icons-material/Login";
 import AppRegistrationIcon from "@mui/icons-material/AppRegistration";
 import { AccountCircle } from "@mui/icons-material";
 import { Menu, MenuItem } from "@mui/material";
-import { searchBooks } from "../../action/BookAction";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -122,8 +121,11 @@ export default function NavBar() {
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !!searchTerm) {
-                  dispatch(searchBooks({ query: searchTerm, page: 1 }));
-                  //navigate("/searchResults?q=" + searchTerm); // optional route change
+                  navigate(
+                    `/search?q=${encodeURIComponent(searchTerm.trim())}`
+                  );
+
+                  setSearchTerm("");
                 }
               }}
             />
@@ -169,7 +171,7 @@ export default function NavBar() {
                         handleClose();
                       }}
                     >
-                      Your Book
+                      My Book
                     </MenuItem>
                     <MenuItem onClick={handleLogout}>Logout</MenuItem>
                   </Menu>

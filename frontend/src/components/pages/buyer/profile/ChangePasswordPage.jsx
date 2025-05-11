@@ -1,41 +1,76 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Box, Card, Typography, TextField, Button, Stack } from "@mui/material";
+import {
+  Box,
+  Card,
+  Typography,
+  TextField,
+  Button,
+  Stack,
+  Backdrop,
+  CircularProgress,
+} from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import CommonToast from "../../../common/CommonToast";
+import { useDispatch } from "react-redux";
+import { changeUserPassword } from "../../../../action/authAction";
+import { showToast } from "../../../../redux/toastSlice";
 
 const ChangePasswordPage = () => {
   const {
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors },
   } = useForm();
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // For snack bar Start
+  const [loading, setLoading] = useState(false);
 
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      await dispatch(
+        changeUserPassword({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+          confirmNewPassword: data.confirmPassword,
+        })
+      ).unwrap();
 
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setOpenSnackbar(true);
-  };
+      dispatch(showToast({ message: "Password changed successfully!" }));
 
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
-
-  // For snack Bar end
-
-  const onSubmit = (data) => {
-    console.log(data);
-    showSnackbar("Review submitted successfully!", "success");
-    // Dispatch change password action here
+      navigate("/profilePage");
+    } catch (err) {
+      if (typeof err === "object") {
+        if (err.currentPassword) {
+          setError("currentPassword", {
+            type: "server",
+            message: err.currentPassword,
+          });
+        }
+        if (err.newPassword) {
+          setError("newPassword", {
+            type: "server",
+            message: err.newPassword,
+          });
+        }
+        if (err.confirmNewPassword) {
+          setError("confirmPassword", {
+            type: "server",
+            message: err.confirmNewPassword,
+          });
+        }
+      } else {
+        dispatch(
+          showToast({ message: "Something went wrong", severity: "error" })
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -52,19 +87,12 @@ const ChangePasswordPage = () => {
       }}
     >
       <Card sx={{ width: 400, p: 4, boxShadow: 3 }}>
-        <Typography
-          variant="h5"
-          fontWeight="bold"
-          textAlign="center"
-          mb={4} // 👈 margin bottom from heading to inputs
-        >
+        <Typography variant="h5" fontWeight="bold" textAlign="center" mb={4}>
           Change Password
         </Typography>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Stack spacing={3}>
-            {" "}
-            {/* 👈 spacing between fields */}
             <TextField
               label="Current Password"
               type="password"
@@ -74,6 +102,7 @@ const ChangePasswordPage = () => {
               error={!!errors.currentPassword}
               helperText={errors.currentPassword?.message}
             />
+
             <TextField
               label="New Password"
               type="password"
@@ -87,6 +116,7 @@ const ChangePasswordPage = () => {
               error={!!errors.newPassword}
               helperText={errors.newPassword?.message}
             />
+
             <TextField
               label="Confirm Password"
               type="password"
@@ -97,6 +127,7 @@ const ChangePasswordPage = () => {
               error={!!errors.confirmPassword}
               helperText={errors.confirmPassword?.message}
             />
+
             <Stack direction="row" spacing={2} justifyContent="center" mt={2}>
               <Button
                 variant="outlined"
@@ -112,12 +143,13 @@ const ChangePasswordPage = () => {
           </Stack>
         </form>
       </Card>
-      <CommonToast
-        open={openSnackbar}
-        message={snackbarMessage}
-        severity={snackbarSeverity}
-        onClose={handleCloseSnackbar}
-      />
+
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={loading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </Box>
   );
 };

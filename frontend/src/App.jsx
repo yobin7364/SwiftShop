@@ -20,6 +20,10 @@ import SellerNavBar from "./components/common/SellerNavBar";
 import { MyBookPage } from "./components/pages/seller/MyBook/MyBookPage";
 import { DiscountPage } from "./components/pages/seller/Discount/DiscountPage";
 import SellerRatingsPage from "./components/pages/seller/RatingsAndReviews/RatingsAndReviews";
+import FreeBooksPage from "./components/pages/buyer/BookPages/FreeBooksPage";
+import GenreBooksPage from "./components/pages/buyer/BookPages/GenreBooksPage";
+import SearchResultsPage from "./components/pages/buyer/BookPages/SearchResultsPage";
+import CommonToast from "./components/common/CommonToast";
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -46,12 +50,15 @@ function App() {
 
   return (
     <Router>
-      {currentRole == "seller" ? <SellerNavBar /> : <NavBar />}
+      <CommonToast />
+
+      {currentRole == "seller" && <SellerNavBar />}
+      {currentRole !== "seller" && <NavBar />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registerForm" element={<RegisterForm />} />
-        <Route path="/bookDetail" element={<BookDetail />} />
+        <Route path="/bookDetail/:bookID" element={<BookDetail />} />
 
         {currentRole == "seller" ? (
           <>
@@ -78,6 +85,18 @@ function App() {
 
               <Route path="/buyerBooks" element={<BuyerBooks />} />
             </Route>
+          </>
+        )}
+
+        {currentRole !== "seller" && (
+          <>
+            <Route path="/freeBooksPage" element={<FreeBooksPage />} />
+            <Route
+              path="/genreBooksPage/:genreSlug"
+              element={<GenreBooksPage />}
+            />
+
+            <Route path="/search" element={<SearchResultsPage />} />
           </>
         )}
       </Routes>
