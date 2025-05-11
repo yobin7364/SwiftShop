@@ -56,11 +56,21 @@ export function formatBookWithDiscount(book) {
   const discountedPrice = getDiscountedPrice(base, now)
   const { discountStartISO, discountEndISO } = serializeDiscountDates(base)
 
-  return {
+  const formatted = {
     ...base,
     discountActive: active,
     discountedPrice,
-    discountStart: discountStartISO,
-    discountEnd: discountEndISO,
+    discountPercentage: active ? base.discountPercentage : null,
   }
+
+  // Include discountStart and discountEnd only if discount is active
+  if (active) {
+    formatted.discountStart = new Date(base.discountStart).toISOString()
+    formatted.discountEnd = new Date(base.discountEnd).toISOString()
+  } else {
+    delete formatted.discountStart
+    delete formatted.discountEnd
+  }
+
+  return formatted
 }

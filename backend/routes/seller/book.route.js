@@ -14,8 +14,6 @@ import { errorHandler } from '../../middleware/errorHandler.js'
 import { validateBookQuery } from '../../validator/bookQuery.validator.js'
 const router = express.Router()
 
-const DEFAULT_COVER_IMAGE = 'https://yourcdn.com/images/default-book-cover.jpg'
-
 const optionalAuth = expressjwt({
   secret: keys.secretOrKey,
   algorithms: ['HS256'],
@@ -650,19 +648,45 @@ router.get('/category/:category', async (req, res, next) => {
 //@desc   Get newly added books (sorted by createdAt)
 //@access Public
 router.get('/new', async (req, res) => {
+  const page = parseInt(req.query.page) || 1
   const limit = parseInt(req.query.limit) || 10
-
+  const skip = (page - 1) * limit
   try {
-    const books = await Book.find()
+    const rawBooks = await Book.find({
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
       .sort({ createdAt: -1 }) // Most recent first
+      .skip(skip)
       .limit(limit)
-      .populate('author', 'name email') // Include author details
+      .populate({ path: 'author', select: 'name email' }) // Include author details
 
-    res
-      .status(200)
-      .json({ success: true, message: 'Newly added books retrieved', books })
+    const total = await Book.countDocuments({
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+
+    const books = rawBooks.map(formatBookWithDiscount)
+
+    res.status(200).json({
+      success: true,
+      message: 'Newly added books retrieved',
+      books,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalBooks: total,
+    })
   } catch (error) {
-    next(error)
+    console.error('Error fetching newest books:', error)
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: 'Server error',
+        details: {
+          server: error.message || 'Internal server error',
+        },
+      },
+    })
   }
 })
 
@@ -701,20 +725,48 @@ router.get('/free', async (req, res, next) => {
 //@desc   Get top-rated books
 //@access Public
 router.get('/top-rated', async (req, res, next) => {
+  const page = parseInt(req.query.page) || 1
   const limit = parseInt(req.query.limit) || 10
-
+  const skip = (page - 1) * limit
   try {
-    const books = await Book.find()
-      .populate('author', 'name email')
-      .sort({ averageRating: -1, createdAt: -1 })
-      .limit(limit)
-      .select('title averageRating category price coverImage')
+    const rawBooks = await Book.find({
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+      averageRating: { $gt: 0 }, // Only books with ratings
+    })
 
-    res
-      .status(200)
-      .json({ success: true, message: 'Top rated books retrieved', books })
+      .sort({ averageRating: -1, createdAt: -1 }) // Highest rated first
+      .skip(skip)
+      .limit(limit)
+      .populate({ path: 'author', select: 'name email' })
+
+    const total = await Book.countDocuments({
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+      averageRating: { $gt: 0 },
+    })
+
+    const books = rawBooks.map(formatBookWithDiscount)
+
+    res.status(200).json({
+      success: true,
+      message: 'Top rated books retrieved',
+      books,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalBooks: total,
+    })
   } catch (error) {
-    next(error)
+    console.error('Error fetching top-rated books:', error)
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: 'Server error',
+        details: {
+          server: error.message || 'Internal server error',
+        },
+      },
+    })
   }
 })
 //@route  GET /api/book/genre/:genre
@@ -891,7 +943,7 @@ router.post(
         category,
         genres,
         description,
-        coverImage: coverImage || DEFAULT_COVER_IMAGE,
+        coverImage,
         publisher,
         isbn,
         releaseDate,

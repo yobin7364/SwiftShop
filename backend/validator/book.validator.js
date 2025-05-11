@@ -58,6 +58,7 @@ export const validateBook = (data) => {
       'date.base': 'Release date must be a valid ISO date.',
       'any.required': 'Release date is required.',
     }),
+    isPublished: Joi.boolean(),
   })
 
   const { error } = schema.validate(data, { abortEarly: false })
