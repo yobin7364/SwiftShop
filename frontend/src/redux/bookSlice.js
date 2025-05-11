@@ -5,6 +5,8 @@ import {
   getGenresAction,
   getEachGenreBooksAction,
   searchBooksAction,
+  postBookReviewAction,
+  getTopRatedBooksAction,
 } from "../action/BookAction";
 
 const initialState = {
@@ -28,10 +30,19 @@ const initialState = {
   loadingGenreBooks: false,
   errorGenreBooks: null,
 
+  // Top Rated Books
+  topRatedBooks: [],
+  loadingTopRatedBooks: false,
+  errorTopRatedBooks: null,
+
   // Search Books
   searchBooks: [],
   loadingSearchBooks: false,
   errorSearchBooks: null,
+
+  // Review Book
+  loadingReviewBook: false,
+  errorReviewBook: null,
 };
 
 const bookSlice = createSlice({
@@ -52,6 +63,21 @@ const bookSlice = createSlice({
       .addCase(freeBookAction.rejected, (state, action) => {
         state.loadingFreeBooks = false;
         state.errorFreeBooks = action.payload;
+      });
+
+    // Top Rated Book
+    builder
+      .addCase(getTopRatedBooksAction.pending, (state) => {
+        state.loadingTopRatedBooks = true;
+        state.errorTopRatedBooks = null;
+      })
+      .addCase(getTopRatedBooksAction.fulfilled, (state, action) => {
+        state.loadingTopRatedBooks = false;
+        state.topRatedBooks = action.payload;
+      })
+      .addCase(getTopRatedBooksAction.rejected, (state, action) => {
+        state.loadingTopRatedBooks = false;
+        state.errorTopRatedBooks = action.payload;
       });
 
     // Single Book
@@ -112,6 +138,20 @@ const bookSlice = createSlice({
       .addCase(searchBooksAction.rejected, (state, action) => {
         state.loadingSearchBooks = false;
         state.error = action.payload;
+      });
+
+    // Review Book
+    builder
+      .addCase(postBookReviewAction.pending, (state) => {
+        state.loadingReviewBook = true;
+        state.errorReviewBook = null;
+      })
+      .addCase(postBookReviewAction.fulfilled, (state, action) => {
+        state.loadingReviewBook = false;
+      })
+      .addCase(postBookReviewAction.rejected, (state, action) => {
+        state.loadingReviewBook = false;
+        state.errorReviewBook = action.payload;
       });
   },
 });

@@ -1,108 +1,81 @@
 import React from "react";
 import { Grid, Card, CardContent, Typography } from "@mui/material";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import StarRateIcon from "@mui/icons-material/StarRate";
 
-export default function SellerSummaryCards() {
+export default function SellerSummaryCards({
+  totalBooks = 0,
+  totalSales = 0,
+  totalRevenue = 0,
+  avgRating = 0,
+}) {
+  const cardStyles = {
+    height: 180,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    boxShadow: 3,
+    borderRadius: 2,
+  };
+
+  const iconStyle = { fontSize: 40, marginBottom: 1 };
+
   return (
     <Grid container spacing={3} sx={{ ml: 0 }}>
       <Grid item xs={12} sm={6} md={3} sx={{ pl: 0 }}>
-        <Card
-          sx={{
-            bgcolor: "#b2ebf2",
-            boxShadow: 3,
-            borderRadius: 2,
-            height: 180,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h6"
-              fontWeight="bold"
-              // color="text.secondary"
-              align="center"
-            >
-              Total Books
+        <Card sx={{ ...cardStyles, bgcolor: "#b2ebf2" }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <LibraryBooksIcon sx={iconStyle} />
+            <Typography variant="h6" fontWeight="bold">
+              Your Books
             </Typography>
-            <Typography variant="h4" fontWeight="bold" align="center" mt={1}>
-              12
+            <Typography variant="h4" fontWeight="bold" mt={1}>
+              {totalBooks}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
 
-      {/* Second Card */}
       <Grid item xs={12} sm={6} md={3}>
-        <Card
-          sx={{
-            bgcolor: "#ffcc80",
-            boxShadow: 3,
-            borderRadius: 2,
-            height: 180,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" align="center">
+        <Card sx={{ ...cardStyles, bgcolor: "#ffcc80" }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <ShoppingCartIcon sx={iconStyle} />
+            <Typography variant="h6" fontWeight="bold">
               Total Sales
             </Typography>
-            <Typography variant="h4" fontWeight="bold" align="center" mt={1}>
-              230
+            <Typography variant="h4" fontWeight="bold" mt={1}>
+              {totalSales}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
 
-      {/* Third Card */}
       <Grid item xs={12} sm={6} md={3}>
-        <Card
-          sx={{
-            bgcolor: "#a5d6a7",
-            boxShadow: 3,
-            borderRadius: 2,
-            height: 180,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" align="center">
+        <Card sx={{ ...cardStyles, bgcolor: "#a5d6a7" }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <AttachMoneyIcon sx={iconStyle} />
+            <Typography variant="h6" fontWeight="bold">
               Revenue
             </Typography>
-            <Typography variant="h4" fontWeight="bold" align="center" mt={1}>
-              $4,500
+            <Typography variant="h4" fontWeight="bold" mt={1}>
+              ${Number(totalRevenue).toLocaleString()}
             </Typography>
           </CardContent>
         </Card>
       </Grid>
 
-      {/* Fourth Card */}
       <Grid item xs={12} sm={6} md={3}>
-        <Card
-          sx={{
-            bgcolor: "#b39ddb",
-            boxShadow: 3,
-            borderRadius: 2,
-            height: 180,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" align="center">
+        <Card sx={{ ...cardStyles, bgcolor: "#b39ddb" }}>
+          <CardContent sx={{ textAlign: "center" }}>
+            <StarRateIcon sx={iconStyle} />
+            <Typography variant="h6" fontWeight="bold">
               Avg Rating
             </Typography>
-            <Typography variant="h4" fontWeight="bold" align="center" mt={1}>
-              4.6
+            <Typography variant="h4" fontWeight="bold" mt={1}>
+              {Number(avgRating).toFixed(2)}
             </Typography>
           </CardContent>
         </Card>

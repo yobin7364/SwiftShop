@@ -2,6 +2,72 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
+// START, Seller Book API
+// Post book by Seller
+export const postSellerBookAction = createAsyncThunk(
+  "book/seller/post",
+  async ({ bookData }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.post(`/api/book`, bookData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to Post Book"
+      );
+    }
+  }
+);
+
+// Edit Seller Book
+export const editSellerBookAction = createAsyncThunk(
+  "book/seller/edit",
+  async ({ bookId, bookData }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.put(`/api/book/${bookId}`, bookData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to Edit Book"
+      );
+    }
+  }
+);
+
+// Delete Seller Book
+export const deleteSellerBookAction = createAsyncThunk(
+  "book/seller/delete",
+  async ({ bookId }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.delete(`/api/book/${bookId}`);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to Delete Book"
+      );
+    }
+  }
+);
+
+// Get seller books
+
+export const getSellerBookAction = createAsyncThunk(
+  "books/seller/myBooks",
+  async ({ query, page = 1 }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get(
+        `/api/book/myBooks?query=${query}&page=${page}&limit=10`
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to get Book"
+      );
+    }
+  }
+);
+
+// END, Seller Book API
+
 export const searchBooksAction = createAsyncThunk(
   "books/search",
   async ({ query, page = 1 }, { rejectWithValue }) => {
@@ -29,6 +95,22 @@ export const freeBookAction = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.error?.details || "Loading Free Books failed"
+      );
+    }
+  }
+);
+
+export const getTopRatedBooksAction = createAsyncThunk(
+  "books/topRated",
+  async ({ limit = 6, page = 1 }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get(
+        `/api/book/top-rated?limit=${limit}&page=${page}`
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Loading Top Rated Books failed"
       );
     }
   }
@@ -73,6 +155,23 @@ export const getEachGenreBooksAction = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.error?.details || "Loading Genre Books failed"
+      );
+    }
+  }
+);
+
+export const postBookReviewAction = createAsyncThunk(
+  "books/review",
+  async ({ bookID, ratingData }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.post(
+        `api/book/${bookID}/review`,
+        ratingData
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to Post Review"
       );
     }
   }

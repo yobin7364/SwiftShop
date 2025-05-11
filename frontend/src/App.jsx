@@ -11,6 +11,7 @@ import setAuthToken from "./utils/setAuthToken";
 import { jwtDecode } from "jwt-decode";
 import { setCurrentUser, logout } from "./redux/authSlice";
 import { useSelector } from "react-redux";
+import { useEffect } from "react";
 import BuyerBooks from "./components/pages/buyer/BuyerBooksPage/BuyerBooks";
 import ProfilePage from "./components/pages/buyer/profile/ProfilePage";
 import ChangePasswordPage from "./components/pages/buyer/profile/ChangePasswordPage";
@@ -24,29 +25,23 @@ import FreeBooksPage from "./components/pages/buyer/BookPages/FreeBooksPage";
 import GenreBooksPage from "./components/pages/buyer/BookPages/GenreBooksPage";
 import SearchResultsPage from "./components/pages/buyer/BookPages/SearchResultsPage";
 import CommonToast from "./components/common/CommonToast";
+import TopRatedPage from "./components/pages/buyer/BookPages/TopRatedPage";
+
+if (localStorage.authToken) {
+  setAuthToken(localStorage.authToken);
+  const decoded = jwtDecode(localStorage.authToken);
+  store.dispatch(setCurrentUser(decoded));
+
+  const currentTime = Date.now() / 1000;
+  if (decoded.exp < currentTime) {
+    store.dispatch(logout());
+    window.location.href = "/login";
+  }
+}
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const currentRole = useSelector((state) => state.auth.user?.role[0]);
-
-  // Check for token to maintain auth state
-  if (localStorage.authToken) {
-    // Set auth header
-    setAuthToken(localStorage.authToken);
-
-    // Decode token to get user data
-    const decoded = jwtDecode(localStorage.authToken);
-
-    // Set current user in Redux
-    store.dispatch(setCurrentUser(decoded));
-
-    // Check if token is expired
-    const currentTime = Date.now() / 1000;
-    if (decoded.exp < currentTime) {
-      store.dispatch(logout());
-      window.location.href = "/login";
-    }
-  }
 
   return (
     <Router>
@@ -97,6 +92,8 @@ function App() {
             />
 
             <Route path="/search" element={<SearchResultsPage />} />
+
+            <Route path="/topRatedPage" element={<TopRatedPage />} />
           </>
         )}
       </Routes>

@@ -14,35 +14,23 @@ import {
   DialogActions,
   Rating,
   TextField,
+  CircularProgress,
 } from "@mui/material";
-
-import CommonToast from "../../../common/CommonToast";
+import { useDispatch } from "react-redux";
+import { showToast } from "../../../../redux/toastSlice";
+import { postBookReviewAction } from "../../../../action/BookAction";
 
 const ebooks = [
   {
+    _id: "68136f2e308a0170280e5f59",
     title: "Buchanan's Express",
     image:
       "https://plus.unsplash.com/premium_photo-1682125773446-259ce64f9dd7?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     author: "John Doe",
+    urlForBook:
+      "https://antilogicalism.com/wp-content/uploads/2018/03/short-history-world.pdf",
   },
-  {
-    title: "Blackstone",
-    image:
-      "https://images.unsplash.com/photo-1592496431122-2349e0fbc666?q=80&w=2112&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    author: "Jane Smith",
-  },
-  {
-    title: "Gitel’s Freedom",
-    image:
-      "https://images.unsplash.com/photo-1641154748135-8032a61a3f80?q=80&w=2030&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    author: "Paul Johnson",
-  },
-  {
-    title: "Ice Age",
-    image:
-      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    author: "Emily Brown",
-  },
+  // other books...
 ];
 
 const ITEMS_PER_PAGE = 4;
@@ -53,26 +41,11 @@ export default function BuyerBooks() {
   const [selectedBook, setSelectedBook] = useState(null);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (event, value) => {
-    setPage(value);
-  };
+  const dispatch = useDispatch();
 
-  // For snack bar
-
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
-
-  const showSnackbar = (message, severity = "success") => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setOpenSnackbar(true);
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
+  const handleChange = (event, value) => setPage(value);
 
   const handleGiveReview = (book) => {
     setSelectedBook(book);
@@ -81,19 +54,31 @@ export default function BuyerBooks() {
     setOpen(true);
   };
 
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const handleClose = () => setOpen(false);
 
-  const handleSubmit = () => {
-    console.log("Submitting Review:", {
-      bookTitle: selectedBook.title,
-      rating,
-      review,
-    });
-    setOpen(false);
-    showSnackbar("Review submitted successfully!", "success");
-    // Here you would send (bookId, rating, review) anonymously to your backend
+  const handleSubmit = async () => {
+    if (!selectedBook || rating === 0) return;
+    setLoading(true);
+    try {
+      await dispatch(
+        postBookReviewAction({
+          bookID: selectedBook._id,
+          ratingData: { rating, comment: review },
+        })
+      ).unwrap();
+
+      dispatch(showToast({ message: "Review submitted successfully!" }));
+      setOpen(false);
+    } catch (error) {
+      dispatch(
+        showToast({
+          message: error || "Failed to submit review",
+          severity: "error",
+        })
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const paginatedEbooks = ebooks.slice(
@@ -125,10 +110,15 @@ export default function BuyerBooks() {
                 height="200"
                 image={ebook.image}
                 alt={ebook.title}
+                onClick={() => window.open(ebook.urlForBook, "_blank")}
+                sx={{ cursor: "pointer" }}
               />
               <CardContent sx={{ textAlign: "center" }}>
                 <Typography variant="h6" noWrap>
                   {ebook.title}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  by {ebook.author}
                 </Typography>
 
                 <Box sx={{ mt: 2 }}>
@@ -154,11 +144,12 @@ export default function BuyerBooks() {
         sx={{ marginTop: 3, display: "flex", justifyContent: "center" }}
       />
 
-      {/* Review Dialog */}
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         {selectedBook && (
           <>
-            <DialogTitle sx={{ m: 0, p: 2 }}>
+            <DialogTitle
+              sx={{ m: 0, p: 2, bgcolor: "#424242", color: "white" }}
+            >
               <Box
                 display="flex"
                 alignItems="center"
@@ -169,7 +160,7 @@ export default function BuyerBooks() {
                 </Typography>
                 <Button
                   onClick={handleClose}
-                  sx={{ minWidth: "auto", padding: 0 }}
+                  sx={{ minWidth: "auto", padding: 0, color: "white" }}
                 >
                   ✖
                 </Button>
@@ -217,19 +208,21 @@ export default function BuyerBooks() {
 
             <DialogActions>
               <Button onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSubmit} variant="contained">
-                Submit
+              <Button
+                onClick={handleSubmit}
+                variant="contained"
+                disabled={loading || rating === 0}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Submit"
+                )}
               </Button>
             </DialogActions>
           </>
         )}
       </Dialog>
-      <CommonToast
-        open={openSnackbar}
-        message={snackbarMessage}
-        severity={snackbarSeverity}
-        onClose={handleCloseSnackbar}
-      />
     </Box>
   );
 }

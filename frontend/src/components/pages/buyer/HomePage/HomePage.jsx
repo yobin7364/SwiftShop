@@ -1,14 +1,14 @@
 import * as React from "react";
 import FreeEbookCarousel from "./FreeEbookCarousel";
 import GenresEbook from "./GenresEbook";
-import EditorsChoiceEbooks from "./EditorsChoiceEbooks";
+import TopRatedEbooksCarousel from "./TopRatedEbooksCarousel";
 
 const HomePage = () => {
   return (
     <>
       <FreeEbookCarousel />
       <GenresEbook />
-      <EditorsChoiceEbooks />
+      <TopRatedEbooksCarousel />
     </>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Typography,
@@ -11,7 +11,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Button,
+  CircularProgress,
 } from "@mui/material";
 import {
   LineChart,
@@ -23,31 +23,63 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-
+import { useDispatch, useSelector } from "react-redux";
+import { dashboardDataAction } from "../../../../action/dashboardAction";
 import SellerSummaryCards from "./SellerSummaryCards";
+import { parse, compareDesc } from "date-fns";
 
 const drawerWidth = 240;
 
-const data = [
-  { month: "Jan", sales: 10, revenue: 200 },
-  { month: "Feb", sales: 15, revenue: 300 },
-  { month: "Mar", sales: 8, revenue: 160 },
-  { month: "Apr", sales: 8, revenue: 190 },
-  { month: "May", sales: 11, revenue: 110 },
-  { month: "Jun", sales: 15, revenue: 100 },
-];
-
-const topBooks = [
-  { id: 1, title: "Ice Age", sales: 120, rating: 4.8 },
-  { id: 2, title: "Freedom", sales: 80, rating: 4.5 },
-];
-
-const recentReviews = [
-  { id: 1, bookTitle: "Ice Age", text: "Amazing story!", rating: 5 },
-  { id: 2, bookTitle: "Freedom", text: "Loved it!", rating: 4 },
-];
-
 export default function SellerDashboard() {
+  const dispatch = useDispatch();
+  const { dashboardData, loadingDashboardData, errorDashboardData } =
+    useSelector((state) => state.dashboard);
+
+  useEffect(() => {
+    dispatch(dashboardDataAction());
+  }, [dispatch]);
+
+  if (loadingDashboardData) {
+    return (
+      <Box display="flex" justifyContent="center" mt={10}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (errorDashboardData) {
+    return (
+      <Box display="flex" justifyContent="center" mt={10}>
+        <Typography color="error">{errorDashboardData}</Typography>
+      </Box>
+    );
+  }
+
+  const salesData = dashboardData.salesOverview || [];
+  const revenueData = dashboardData.revenueOverview || [];
+
+  const getLastSixMonths = (data) => {
+    const parsed = data.map((item) => ({
+      ...item,
+      date: parse(item.month, "MMM yyyy", new Date()),
+    }));
+
+    const sorted = parsed.sort((a, b) => compareDesc(a.date, b.date));
+    return sorted.slice(0, 6).reverse();
+  };
+
+  const lastSixSales = getLastSixMonths(salesData);
+  const lastSixRevenue = getLastSixMonths(revenueData);
+
+  const combinedData = lastSixSales.map((saleItem) => {
+    const revenueItem = lastSixRevenue.find((r) => r.month === saleItem.month);
+    return {
+      month: saleItem.month.split(" ")[0],
+      sales: saleItem.value,
+      revenue: revenueItem ? parseFloat(revenueItem.value.toFixed(2)) : 0,
+    };
+  });
+
   return (
     <Box
       sx={{
@@ -72,17 +104,19 @@ export default function SellerDashboard() {
       >
         <Container maxWidth="xl">
           <Grid container spacing={3}>
-            {/* Cards */}
+            <SellerSummaryCards
+              totalBooks={dashboardData.totalBooks}
+              totalSales={dashboardData.totalSales}
+              totalRevenue={dashboardData.totalRevenue}
+              avgRating={dashboardData.avgRating}
+            />
 
-            <SellerSummaryCards />
-
-            {/* Charts */}
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 2, borderRadius: 2 }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   Sales Overview
                 </Typography>
-                <LineChart width={500} height={300} data={data}>
+                <LineChart width={500} height={300} data={combinedData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
@@ -97,17 +131,16 @@ export default function SellerDashboard() {
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   Revenue Overview
                 </Typography>
-                <BarChart width={500} height={300} data={data}>
+                <BarChart width={500} height={300} data={combinedData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value) => `$${value}`} />
                   <Bar dataKey="revenue" fill="#82ca9d" />
                 </BarChart>
               </Paper>
             </Grid>
 
-            {/* Tables */}
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 2, borderRadius: 2 }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
@@ -129,8 +162,8 @@ export default function SellerDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {topBooks.map((book) => (
-                        <TableRow key={book.id}>
+                      {dashboardData.topSellingBooks?.map((book, index) => (
+                        <TableRow key={index}>
                           <TableCell>{book.title}</TableCell>
                           <TableCell>{book.sales}</TableCell>
                           <TableCell>{book.rating}</TableCell>
@@ -163,8 +196,8 @@ export default function SellerDashboard() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {recentReviews.map((review) => (
-                        <TableRow key={review.id}>
+                      {dashboardData.recentReviews?.map((review, index) => (
+                        <TableRow key={index}>
                           <TableCell>{review.bookTitle}</TableCell>
                           <TableCell>{review.text}</TableCell>
                           <TableCell>{review.rating}</TableCell>
