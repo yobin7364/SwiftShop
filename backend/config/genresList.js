@@ -2,44 +2,37 @@ export const genresList = [
   {
     name: 'Action',
     slug: 'action',
-    image:
-      'https://images.unsplash.com/photo-1571335516839-9b440e56a61a?q=80&w=1160&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    image: 'https://yourcdn.com/images/action.jpg',
   },
   {
     name: 'Adventure',
     slug: 'adventure',
-    image:
-      'https://images.unsplash.com/photo-1604413690901-792b8a44302e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8YWR2ZW50dXJlJTIwYm9va3N8ZW58MHx8MHx8fDA%3D',
+    image: 'https://yourcdn.com/images/adventure.jpg',
   },
   {
     name: 'Mystery',
     slug: 'mystery',
-    image:
-      'https://images.unsplash.com/photo-1574671992738-e1a462d1ec7c?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8bXlzdGVyeSUyMGJvb2tzfGVufDB8fDB8fHww',
+    image: 'https://yourcdn.com/images/mystery.jpg',
   },
   {
     name: 'Science Fiction',
     slug: 'science-fiction',
-    image:
-      'https://plus.unsplash.com/premium_photo-1674479813019-adf671b9aa0f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8c2NpZW5jZSUyMGZpY3Rpb24lMjBib29rc3xlbnwwfHwwfHx8MA%3D%3D',
+    image: 'https://yourcdn.com/images/scifi.jpg',
   },
   {
     name: 'Romance',
     slug: 'romance',
-    image:
-      'https://images.unsplash.com/photo-1711185896213-83f3f2e20fd5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8cm9tYW5jZSUyMGJvb2tzfGVufDB8fDB8fHww',
+    image: 'https://yourcdn.com/images/romance.jpg',
   },
   {
     name: 'Thriller',
     slug: 'thriller',
-    image:
-      'https://images.unsplash.com/photo-1647530101594-e800c025f798?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGhyaWxsZXIlMjBib29rc3xlbnwwfHwwfHx8MA%3D%3D',
+    image: 'https://yourcdn.com/images/thriller.jpg',
   },
   {
     name: 'Horror',
     slug: 'horror',
-    image:
-      'https://images.unsplash.com/photo-1603491285520-10e88b8623e8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aG9ycm9yJTIwYm9va3N8ZW58MHx8MHx8fDA%3D',
+    image: 'https://yourcdn.com/images/horror.jpg',
   },
   //   {
   //     name: 'Crime',
@@ -136,5 +129,4 @@ export const genresList = [
   //     slug: 'fairytales',
   //     image: 'https://yourcdn.com/images/fairytales.jpg',
   //   },
-  //
 ]
