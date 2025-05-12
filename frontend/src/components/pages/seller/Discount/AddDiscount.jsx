@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -6,149 +6,125 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Stack,
   TextField,
   IconButton,
   Autocomplete,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import { useForm } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
+import { getSellerBookAction } from "../../../../action/BookAction";
+import { updateSellerDiscountedBookAction } from "../../../../action/DiscountAction";
+import { showToast } from "../../../../redux/toastSlice";
+import { getSellerDiscountedBookAction } from "../../../../action/DiscountAction";
 
-export default function AddDiscount({ onAddDiscount }) {
-  const [searchTerm, setSearchTerm] = useState("");
+export default function AddDiscount() {
+  const dispatch = useDispatch();
+  const { myBooks } = useSelector((state) => state.sellerBook);
+  const loading = useSelector(
+    (state) => state.sellerDiscount.loadingUpdateDiscount
+  );
+
   const [open, setOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
-  const [discountPercent, setDiscountPercent] = useState("");
   const [finalPrice, setFinalPrice] = useState(null);
-  const [startDateTime, setStartDateTime] = useState("");
-  const [endDateTime, setEndDateTime] = useState("");
 
-  const books = [
-    {
-      id: 1,
-      title: "The Light of All That Falls",
-      author: "James Islington",
-      price: 30,
-    },
-    {
-      id: 2,
-      title: "The Silent Patient",
-      author: "Alex Michaelides",
-      price: 25,
-    },
-    { id: 3, title: "Atomic Habits", author: "James Clear", price: 20 },
-    {
-      id: 4,
-      title: "Where the Crawdads Sing",
-      author: "Delia Owens",
-      price: 22,
-    },
-    { id: 5, title: "The Alchemist", author: "Paulo Coelho", price: 18 },
-    { id: 6, title: "Educated", author: "Tara Westover", price: 24 },
-  ];
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    setError,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm();
 
-  const { handleSubmit, reset } = useForm();
+  const discountPercentage = watch("discountPercentage");
+  const discountStart = watch("discountStart");
+  const discountEnd = watch("discountEnd");
 
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
+  useEffect(() => {
+    dispatch(getSellerBookAction({ query: "", page: 1, limit: 100 }));
+  }, [dispatch]);
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleDiscountChange = (e) => {
-    const value = e.target.value;
-    setDiscountPercent(value);
-
-    if (selectedBook && value >= 0 && value <= 100) {
-      const discountedAmount = (selectedBook.price * value) / 100;
+  useEffect(() => {
+    if (selectedBook && discountPercentage >= 0 && discountPercentage <= 100) {
+      const discountedAmount = (selectedBook.price * discountPercentage) / 100;
       const finalAmount = (selectedBook.price - discountedAmount).toFixed(2);
       setFinalPrice(finalAmount);
     } else {
       setFinalPrice(null);
     }
-  };
-
-  const isValidDiscountPeriod = () => {
-    const now = new Date();
-    const start = new Date(startDateTime);
-    const end = new Date(endDateTime);
-    return start > now && end > start;
-  };
-
-  const onSubmit = () => {
-    if (
-      !selectedBook ||
-      discountPercent === "" ||
-      !startDateTime ||
-      !endDateTime
-    )
-      return;
-
-    if (!isValidDiscountPeriod()) {
-      alert(
-        "Start Date/Time must be after now, and End Date/Time must be after Start Date/Time."
-      );
-      return;
-    }
-
-    const discountData = {
-      selectedBook,
-      discountPercent,
-      finalPrice,
-      startDateTime,
-      endDateTime,
-    };
-
-    onAddDiscount(discountData);
-
-    reset();
-    setSelectedBook(null);
-    setDiscountPercent("");
-    setFinalPrice(null);
-    setStartDateTime("");
-    setEndDateTime("");
-    setOpen(false);
-  };
+  }, [discountPercentage, selectedBook]);
 
   const handleClose = () => {
     setOpen(false);
     reset();
     setSelectedBook(null);
-    setDiscountPercent("");
     setFinalPrice(null);
-    setStartDateTime("");
-    setEndDateTime("");
+  };
+
+  const getCurrentDateTime = () => {
+    return new Date().toISOString().slice(0, 16);
+  };
+
+  const onSubmit = async (data) => {
+    if (!selectedBook) {
+      setError("bookId", {
+        type: "manual",
+        message: "Book selection is required",
+      });
+      return;
+    }
+
+    const discountDetail = {
+      discountPercentage: Number(data.discountPercentage),
+      discountStart: data.discountStart,
+      discountEnd: data.discountEnd,
+    };
+
+    const result = await dispatch(
+      updateSellerDiscountedBookAction({
+        bookId: selectedBook._id,
+        discountDetail,
+      })
+    );
+
+    if (updateSellerDiscountedBookAction.fulfilled.match(result)) {
+      dispatch(
+        showToast({
+          message: "Discount applied successfully!",
+          severity: "success",
+        })
+      );
+
+      dispatch(
+        getSellerDiscountedBookAction({
+          page: 1,
+        })
+      );
+
+      handleClose();
+    } else if (typeof result.payload === "object") {
+      Object.entries(result.payload).forEach(([field, message]) => {
+        setError(field, { type: "server", message });
+      });
+    } else {
+      dispatch(
+        showToast({
+          message: result.payload || "Failed to apply discount",
+          severity: "error",
+        })
+      );
+    }
   };
 
   return (
     <Box sx={{ mb: 2 }}>
-      <Stack
-        direction="row"
-        spacing={2}
-        justifyContent="space-between"
-        alignItems="center"
-      >
-        <TextField
-          variant="outlined"
-          placeholder="Search books..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1 }} /> }}
-          size="small"
-          sx={{ width: 300 }}
-        />
-
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -156,15 +132,9 @@ export default function AddDiscount({ onAddDiscount }) {
         >
           Add Discount
         </Button>
-      </Stack>
+      </Box>
 
-      {/* Add Discount Popup */}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle
           sx={{
             bgcolor: "#586ba4",
@@ -175,7 +145,7 @@ export default function AddDiscount({ onAddDiscount }) {
           }}
         >
           Add Discount
-          <IconButton onClick={() => handleClose()} sx={{ color: "white" }}>
+          <IconButton onClick={handleClose} sx={{ color: "white" }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -186,56 +156,80 @@ export default function AddDiscount({ onAddDiscount }) {
             onSubmit={handleSubmit(onSubmit)}
             sx={{ mt: 2 }}
           >
-            {/* Select Book */}
-            <Autocomplete
-              options={books}
-              getOptionLabel={(option) => `${option.title} - ${option.author}`}
-              onChange={(_, value) => {
-                setSelectedBook(value);
-                setDiscountPercent("");
-                setFinalPrice(null);
-              }}
-              renderInput={(params) => (
-                <TextField {...params} label="Select Book" margin="normal" />
-              )}
-            />
+            <>
+              <Autocomplete
+                options={myBooks?.books || []}
+                getOptionLabel={(option) =>
+                  `${option.title} - ${option.publisher}`
+                }
+                onChange={(_, value) => {
+                  setSelectedBook(value);
+                  setValue("bookId", value?._id || "");
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Book"
+                    margin="normal"
+                    error={!!errors.bookId}
+                    helperText={errors.bookId?.message}
+                  />
+                )}
+              />
+              <input
+                type="hidden"
+                {...register("bookId", {
+                  required: "Book selection is required",
+                })}
+              />
+            </>
 
-            {/* Enter Discount % */}
             <TextField
               fullWidth
               label="Discount Percentage (%)"
               margin="normal"
               type="number"
-              value={discountPercent}
-              onChange={handleDiscountChange}
-              inputProps={{ min: 0, max: 100 }}
+              {...register("discountPercentage", {
+                required: "Discount percent is required",
+                min: { value: 0, message: "Minimum is 0%" },
+                max: { value: 100, message: "Maximum is 100%" },
+              })}
+              error={!!errors.discountPercentage}
+              helperText={errors.discountPercentage?.message}
             />
 
-            {/* Start Date & Time */}
             <TextField
               fullWidth
               label="Start Date and Time"
               type="datetime-local"
               margin="normal"
               InputLabelProps={{ shrink: true }}
-              value={startDateTime}
-              onChange={(e) => setStartDateTime(e.target.value)}
-              inputProps={{ min: getCurrentDateTime() }}
+              {...register("discountStart", {
+                required: "Start date/time is required",
+              })}
+              error={!!errors.discountStart}
+              helperText={errors.discountStart?.message}
+              inputProps={{
+                min:
+                  selectedBook?.releaseDate?.slice(0, 16) ||
+                  getCurrentDateTime(),
+              }}
             />
 
-            {/* End Date & Time */}
             <TextField
               fullWidth
               label="End Date and Time"
               type="datetime-local"
               margin="normal"
               InputLabelProps={{ shrink: true }}
-              value={endDateTime}
-              onChange={(e) => setEndDateTime(e.target.value)}
-              inputProps={{ min: startDateTime || getCurrentDateTime() }}
+              {...register("discountEnd", {
+                required: "End date/time is required",
+              })}
+              error={!!errors.discountEnd}
+              helperText={errors.discountEnd?.message}
+              inputProps={{ min: discountStart || getCurrentDateTime() }}
             />
 
-            {/* Show Final Price */}
             {finalPrice !== null && (
               <Box mt={2}>
                 <Typography variant="subtitle1">
@@ -248,18 +242,13 @@ export default function AddDiscount({ onAddDiscount }) {
             )}
 
             <DialogActions sx={{ mt: 2 }}>
-              <Button onClick={() => handleClose()}>Cancel</Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={
-                  !selectedBook ||
-                  discountPercent === "" ||
-                  !startDateTime ||
-                  !endDateTime
-                }
-              >
-                Add Discount
+              <Button onClick={handleClose}>Cancel</Button>
+              <Button type="submit" variant="contained" disabled={loading}>
+                {loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Add Discount"
+                )}
               </Button>
             </DialogActions>
           </Box>

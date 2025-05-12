@@ -4,6 +4,7 @@ import bookReducer from "../redux/bookSlice";
 import toastReducer from "../redux/toastSlice";
 import dashboardReducer from "../redux/dashboadSlice";
 import sellerBookReducer from "../redux/sellerBookSlice";
+import sellerDiscountReducer from "../redux/sellerDiscountSlice";
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     toast: toastReducer,
     dashboard: dashboardReducer,
     sellerBook: sellerBookReducer,
+    sellerDiscount: sellerDiscountReducer,
   },
 });
 
