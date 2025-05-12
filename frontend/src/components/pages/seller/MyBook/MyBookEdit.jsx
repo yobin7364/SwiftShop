@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,89 +8,103 @@ import {
   TextField,
   Box,
   IconButton,
-  Stack,
   Typography,
   MenuItem,
-  Chip,
+  CircularProgress,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useForm } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
+import { editSellerBookAction } from "../../../../action/BookAction";
+import { showToast } from "../../../../redux/toastSlice";
+import { getSellerBookAction } from "../../../../action/BookAction";
+
+const genreList = [
+  { name: "Action", slug: "action" },
+  { name: "Adventure", slug: "adventure" },
+  { name: "Mystery", slug: "mystery" },
+  { name: "Science Fiction", slug: "science-fiction" },
+  { name: "Romance", slug: "romance" },
+  { name: "Thriller", slug: "thriller" },
+  { name: "Horror", slug: "horror" },
+];
 
 export default function MyBookEdit({ open, onClose, book, onEdit }) {
-  const [tags, setTags] = useState([]);
-  const [nowRelease, setNowRelease] = useState(false);
+  const dispatch = useDispatch();
+  const loading = useSelector((state) => state.sellerBook.loadingEditBook);
+  const error = useSelector((state) => state.sellerBook.errorEditBook);
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
+    setError,
     formState: { errors },
   } = useForm();
 
   useEffect(() => {
     if (book) {
-      reset(book);
-      setTags(Array.isArray(book.tags) ? book.tags : []);
+      reset({
+        title: book.title,
+        price: book.price,
+        genre: Array.isArray(book.genres) ? book.genres[0] : book.genre,
+        publisher: book.publisher,
+        ISBN: book.isbn,
+        releaseDateTime: book.releaseDate?.slice(0, 16),
+        description: book.description,
+        coverImage: book.coverImage,
+        filePath: book.file?.filePath || book.filePath,
+      });
     }
   }, [book, reset]);
 
-  const handleTagKeyDown = (e) => {
-    if (e.key === "Enter" && e.target.value.trim() !== "") {
-      e.preventDefault();
-      if (!tags.includes(e.target.value.trim())) {
-        setTags((prev) => [...prev, e.target.value.trim()]);
-      }
-      e.target.value = "";
+  useEffect(() => {
+    if (error && typeof error === "string") {
+      dispatch(showToast({ message: error, severity: "error" }));
+    }
+  }, [error, dispatch]);
+
+  const getMinDateTime = () => new Date().toISOString().slice(0, 16);
+
+  const onSubmit = async (data) => {
+    const bookData = {
+      title: data.title,
+      price: parseFloat(data.price),
+      genre: data.genre,
+      description: data.description || "",
+      coverImage: data.coverImage,
+      filePath: data.filePath,
+      publisher: data.publisher,
+      isbn: data.ISBN,
+      releaseDate: data.releaseDateTime,
+    };
+
+    const resultAction = await dispatch(
+      editSellerBookAction({ bookId: book._id, bookData })
+    );
+
+    if (editSellerBookAction.fulfilled.match(resultAction)) {
+      dispatch(
+        showToast({
+          message: "Book updated successfully!",
+          severity: "success",
+        })
+      );
+      dispatch(getSellerBookAction({ query: "", page: 1 }));
+
+      onEdit(resultAction.payload);
+      onClose();
+    } else if (typeof resultAction.payload === "object") {
+      Object.entries(resultAction.payload).forEach(([field, message]) => {
+        setError(field, { type: "server", message });
+      });
     }
   };
-
-  const handleTagDelete = (tagToDelete) => {
-    setTags((tags) => tags.filter((tag) => tag !== tagToDelete));
-  };
-
-  const getMinDateTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const onSubmit = (data) => {
-    data.tags = tags;
-    if (nowRelease) {
-      data.releaseDateTime = new Date().toISOString();
-    }
-    onEdit({ ...book, ...data });
-    reset();
-    setTags([]);
-    onClose();
-    setNowRelease(false);
-  };
-
-  const categories = [
-    "Fiction",
-    "Non-Fiction",
-    "Science",
-    "History",
-    "Biography",
-    "Children",
-    "Fantasy",
-  ];
 
   if (!book) return null;
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      scroll="paper"
-    >
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle
         sx={{
           bgcolor: "#586ba4",
@@ -106,7 +120,7 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
         </IconButton>
       </DialogTitle>
 
-      <DialogContent dividers>
+      <DialogContent>
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 2 }}>
           <TextField
             fullWidth
@@ -120,23 +134,44 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             fullWidth
             label="Price"
             margin="normal"
-            type="number"
-            {...register("price", { required: "Price is required" })}
+            inputMode="numeric"
+            type="text"
+            {...register("price", {
+              required: "Price is required",
+              pattern: {
+                value: /^[0-9]+$/,
+                message: "Only digits are allowed",
+              },
+            })}
+            onKeyDown={(e) => {
+              if (
+                !/^[0-9]$/.test(e.key) &&
+                ![
+                  "Backspace",
+                  "Delete",
+                  "ArrowLeft",
+                  "ArrowRight",
+                  "Tab",
+                ].includes(e.key)
+              ) {
+                e.preventDefault();
+              }
+            }}
             error={!!errors.price}
             helperText={errors.price?.message}
           />
           <TextField
             fullWidth
-            label="Category"
+            label="Genre"
             margin="normal"
             select
-            {...register("category", { required: "Category is required" })}
-            error={!!errors.category}
-            helperText={errors.category?.message}
+            {...register("genre", { required: "Genre is required" })}
+            error={!!errors.genre}
+            helperText={errors.genre?.message}
           >
-            {categories.map((cat) => (
-              <MenuItem key={cat} value={cat}>
-                {cat}
+            {genreList.map((g) => (
+              <MenuItem key={g.slug} value={g.name}>
+                {g.name}
               </MenuItem>
             ))}
           </TextField>
@@ -152,61 +187,49 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             fullWidth
             label="ISBN"
             margin="normal"
-            {...register("ISBN", { required: "ISBN is required" })}
-            error={!!errors.ISBN}
-            helperText={errors.ISBN?.message}
+            inputMode="numeric"
+            type="text"
+            {...register("ISBN", {
+              required: "ISBN is required",
+              pattern: {
+                value: /^[0-9]+$/,
+                message: "Only digits are allowed",
+              },
+            })}
+            onKeyDown={(e) => {
+              if (
+                !/^[0-9]$/.test(e.key) &&
+                ![
+                  "Backspace",
+                  "Delete",
+                  "ArrowLeft",
+                  "ArrowRight",
+                  "Tab",
+                ].includes(e.key)
+              ) {
+                e.preventDefault();
+              }
+            }}
+            error={!!errors.isbn}
+            helperText={errors.isbn?.message}
           />
 
-          {/* Release Date/Time Section */}
           <Typography variant="subtitle2" sx={{ mt: 2 }}>
             Release Date and Time
           </Typography>
-          <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 1 }}>
-            <TextField
-              fullWidth
-              label="Release DateTime"
-              type="datetime-local"
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ min: getMinDateTime() }}
-              {...register("releaseDateTime", {
-                required: !nowRelease && "Release Date/Time is required",
-              })}
-              disabled={nowRelease}
-              error={!!errors.releaseDateTime}
-              helperText={errors.releaseDateTime?.message}
-            />
-            <Button
-              variant={nowRelease ? "contained" : "outlined"}
-              onClick={() => setNowRelease(!nowRelease)}
-            >
-              {nowRelease ? "Set Custom Time" : "Set Now"}
-            </Button>
-          </Stack>
-
-          {/* Tags Section */}
           <TextField
             fullWidth
-            label="Tags"
+            label="Release DateTime"
+            type="datetime-local"
             margin="normal"
-            placeholder="Type and press Enter"
-            onKeyDown={handleTagKeyDown}
-            InputProps={{
-              startAdornment: (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {tags.map((tag, index) => (
-                    <Chip
-                      key={index}
-                      label={tag}
-                      onDelete={() => handleTagDelete(tag)}
-                      size="small"
-                    />
-                  ))}
-                </Box>
-              ),
-            }}
+            InputLabelProps={{ shrink: true }}
+            {...register("releaseDateTime", {
+              required: "Release Date/Time is required",
+            })}
+            error={!!errors.releaseDateTime}
+            helperText={errors.releaseDateTime?.message}
           />
 
-          {/* Description Section */}
           <TextField
             fullWidth
             label="Description"
@@ -215,32 +238,22 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             rows={3}
             {...register("description")}
           />
-
-          {/* Cover Image URL Section */}
           <TextField
             fullWidth
             label="Cover Image URL"
             margin="normal"
             {...register("coverImage", {
-              pattern: {
-                value: /^(https?):\/\/([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}(\/\S*)?$/,
-                message: "Enter a valid URL",
-              },
+              required: "Cover Image URL is required",
             })}
             error={!!errors.coverImage}
             helperText={errors.coverImage?.message}
           />
-
-          {/* Book File URL Section */}
           <TextField
             fullWidth
             label="Book File URL"
             margin="normal"
             {...register("filePath", {
-              pattern: {
-                value: /^(https?):\/\/([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}(\/\S*)?$/,
-                message: "Enter a valid URL",
-              },
+              required: "Book File URL is required",
             })}
             error={!!errors.filePath}
             helperText={errors.filePath?.message}
@@ -248,8 +261,12 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
 
           <DialogActions sx={{ mt: 2 }}>
             <Button onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="contained">
-              Save
+            <Button type="submit" variant="contained" disabled={loading}>
+              {loading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "Save"
+              )}
             </Button>
           </DialogActions>
         </Box>

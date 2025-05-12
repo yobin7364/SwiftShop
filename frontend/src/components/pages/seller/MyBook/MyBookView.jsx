@@ -9,7 +9,6 @@ import {
   Box,
   Stack,
   IconButton,
-  Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -48,28 +47,15 @@ export default function MyBookView({ open, onClose, book }) {
               <strong>Publisher:</strong> {book.publisher}
             </Typography>
             <Typography>
-              <strong>ISBN:</strong> {book.ISBN}
+              <strong>ISBN:</strong> {book.isbn}
             </Typography>
             <Typography>
               <strong>Release Date & Time:</strong>{" "}
-              {book.releaseDateTime
-                ? new Date(book.releaseDateTime).toLocaleString()
+              {book.releaseDate
+                ? new Date(book.releaseDate).toLocaleString()
                 : "-"}
             </Typography>
-            <Box>
-              <strong>Tags:</strong>{" "}
-              {Array.isArray(book.tags) && book.tags.length > 0 ? (
-                <Stack direction="row" spacing={1} flexWrap="wrap" mt={1}>
-                  {book.tags.map((tag, index) => (
-                    <Chip key={index} label={tag} size="small" />
-                  ))}
-                </Stack>
-              ) : (
-                <Typography variant="body2" color="text.secondary" mt={1}>
-                  No tags
-                </Typography>
-              )}
-            </Box>
+
             <Typography>
               <strong>Description:</strong> {book.description}
             </Typography>
@@ -77,7 +63,7 @@ export default function MyBookView({ open, onClose, book }) {
               <strong>Cover Image:</strong> {book.coverImage}
             </Typography>
             <Typography>
-              <strong>Book File:</strong> {book.filePath}
+              <strong>Book File:</strong> {book.file?.filePath}
             </Typography>
           </Stack>
         </Box>

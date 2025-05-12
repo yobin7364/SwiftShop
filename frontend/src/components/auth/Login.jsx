@@ -19,7 +19,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setCurrentUser } from "../../redux/authSlice";
 import { loginUser } from "../../action/authAction";
-import { showToast } from "../../redux/toastSlice"; // ✅ global toast action
+import { showToast } from "../../redux/toastSlice"; //  global toast action
 
 const Login = () => {
   const dispatch = useDispatch();

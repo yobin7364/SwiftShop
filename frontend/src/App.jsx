@@ -20,7 +20,6 @@ import Footer from "./components/common/Footer";
 import SellerNavBar from "./components/common/SellerNavBar";
 import { MyBookPage } from "./components/pages/seller/MyBook/MyBookPage";
 import { DiscountPage } from "./components/pages/seller/Discount/DiscountPage";
-import SellerRatingsPage from "./components/pages/seller/RatingsAndReviews/RatingsAndReviews";
 import FreeBooksPage from "./components/pages/buyer/BookPages/FreeBooksPage";
 import GenreBooksPage from "./components/pages/buyer/BookPages/GenreBooksPage";
 import SearchResultsPage from "./components/pages/buyer/BookPages/SearchResultsPage";
@@ -62,10 +61,7 @@ function App() {
 
               <Route path="/myBookPage" element={<MyBookPage />} />
               <Route path="/discountPage" element={<DiscountPage />} />
-              <Route
-                path="/sellerRatingsPage"
-                element={<SellerRatingsPage />}
-              />
+
               <Route path="/profilePage" element={<ProfilePage />} />
 
               <Route path="/changePassword" element={<ChangePasswordPage />} />

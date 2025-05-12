@@ -6,8 +6,9 @@ import axios from "axios";
 // Post book by Seller
 export const postSellerBookAction = createAsyncThunk(
   "book/seller/post",
-  async ({ bookData }, { rejectWithValue }) => {
+  async (bookData, { rejectWithValue }) => {
     try {
+      console.log("bookData", bookData);
       const { data } = await axios.post(`/api/book`, bookData);
       return data;
     } catch (error) {
@@ -52,15 +53,33 @@ export const deleteSellerBookAction = createAsyncThunk(
 
 export const getSellerBookAction = createAsyncThunk(
   "books/seller/myBooks",
-  async ({ query, page = 1 }, { rejectWithValue }) => {
+  async ({ query, page = 1, limit = 5 }, { rejectWithValue }) => {
     try {
       const { data } = await axios.get(
-        `/api/book/myBooks?query=${query}&page=${page}&limit=10`
+        `/api/book/myBooks?query=${query}&page=${page}&limit=${limit}`
       );
       return data;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.error?.details || "Failed to get Book"
+      );
+    }
+  }
+);
+
+// Get seller book review
+
+export const getSellerBookReviewsAction = createAsyncThunk(
+  "books/seller/myBooks/review",
+  async ({ bookId, page = 1, limit = 5 }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get(
+        `api/book/${bookId}/reviews?page=${page}&limit=${limit}`
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to get Book Reviews"
       );
     }
   }

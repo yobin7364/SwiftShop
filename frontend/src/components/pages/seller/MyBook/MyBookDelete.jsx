@@ -7,11 +7,41 @@ import {
   Button,
   Typography,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { useDispatch, useSelector } from "react-redux";
+import { deleteSellerBookAction } from "../../../../action/BookAction";
+import { showToast } from "../../../../redux/toastSlice";
+import { getSellerBookAction } from "../../../../action/BookAction";
 
-export default function MyBookDelete({ open, onClose, onDelete, book }) {
+export default function MyBookDelete({ open, onClose, book, onDelete }) {
+  const dispatch = useDispatch();
+  const loading = useSelector((state) => state.sellerBook.loadingDeleteBook);
+
   if (!book) return null;
+
+  const handleDelete = async () => {
+    const result = await dispatch(deleteSellerBookAction({ bookId: book._id }));
+    if (deleteSellerBookAction.fulfilled.match(result)) {
+      dispatch(
+        showToast({
+          message: "Book deleted successfully!",
+          severity: "success",
+        })
+      );
+      onDelete(book._id);
+      dispatch(getSellerBookAction({ query: "", page: 1 }));
+    } else {
+      dispatch(
+        showToast({
+          message: result.payload || "Failed to delete book",
+          severity: "error",
+        })
+      );
+    }
+    onClose();
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
@@ -39,14 +69,12 @@ export default function MyBookDelete({ open, onClose, onDelete, book }) {
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button
-          onClick={() => {
-            onDelete(book.id);
-            onClose();
-          }}
+          onClick={handleDelete}
           variant="contained"
           color="error"
+          disabled={loading}
         >
-          Delete
+          {loading ? <CircularProgress size={20} color="inherit" /> : "Delete"}
         </Button>
       </DialogActions>
     </Dialog>

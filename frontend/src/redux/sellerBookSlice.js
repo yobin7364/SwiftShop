@@ -4,6 +4,7 @@ import {
   editSellerBookAction,
   deleteSellerBookAction,
   getSellerBookAction,
+  getSellerBookReviewsAction,
 } from "../action/BookAction";
 
 const initialState = {
@@ -19,6 +20,10 @@ const initialState = {
 
   loadingDeleteBook: false,
   errorDeleteBook: null,
+
+  sellerBookReview: [],
+  loadingSellerBookReview: false,
+  errorSellerBookReview: null,
 };
 
 const sellerBookSlice = createSlice({
@@ -82,6 +87,21 @@ const sellerBookSlice = createSlice({
       .addCase(deleteSellerBookAction.rejected, (state, action) => {
         state.loadingDeleteBook = false;
         state.errorDeleteBook = action.payload;
+      });
+
+    // Get My Books Review
+    builder
+      .addCase(getSellerBookReviewsAction.pending, (state) => {
+        state.loadingSellerBookReview = true;
+        state.errorSellerBookReview = null;
+      })
+      .addCase(getSellerBookReviewsAction.fulfilled, (state, action) => {
+        state.loadingSellerBookReview = false;
+        state.sellerBookReview = action.payload;
+      })
+      .addCase(getSellerBookReviewsAction.rejected, (state, action) => {
+        state.loadingSellerBookReview = false;
+        state.errorSellerBookReview = action.payload;
       });
   },
 });
