@@ -129,4 +129,4 @@ export const genresList = [
   //     slug: 'fairytales',
   //     image: 'https://yourcdn.com/images/fairytales.jpg',
   //   },
-]
+];
