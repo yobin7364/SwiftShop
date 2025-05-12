@@ -28,12 +28,9 @@ const BookSchema = new Schema(
       type: Number,
       required: true,
     },
-    category: {
+
+    genre: {
       type: String,
-      required: true,
-    },
-    genres: {
-      type: [String],
       required: true,
     },
     description: {

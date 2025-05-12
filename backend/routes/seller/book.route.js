@@ -5,13 +5,14 @@ import { validateBook } from '../../validator/book.validator.js'
 import Book from '../../models/Book.module.js'
 import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
-import { categoriesWithGenres } from '../../config/categoriesGenres.js'
+
 import { formatBookWithDiscount } from '../../utils/discountHelper.js'
 import { expressjwt } from 'express-jwt'
 import keys from '../../config/keys.config.js'
 import { genresList } from '../../config/genresList.js'
 import { errorHandler } from '../../middleware/errorHandler.js'
 import { validateBookQuery } from '../../validator/bookQuery.validator.js'
+import { sanitizeBook } from '../../utils/sanitizeBook.js'
 const router = express.Router()
 
 const optionalAuth = expressjwt({
@@ -20,7 +21,7 @@ const optionalAuth = expressjwt({
   credentialsRequired: false, // 👈 this makes JWT optional
 })
 //@route  GET /api/book/search
-//@desc   Search books by title, description, category, or author name
+//@desc   Search books by title, description, genre or author name
 //@access Public
 router.get('/search', async (req, res, next) => {
   const query = req.query.query || ''
@@ -51,8 +52,7 @@ router.get('/search', async (req, res, next) => {
               $or: [
                 { title: { $regex: searchRegex } },
                 { description: { $regex: searchRegex } },
-                { category: { $regex: searchRegex } },
-                { genres: { $regex: searchRegex } },
+                { genre: { $regex: searchRegex } },
                 { 'authorDetails.name': { $regex: searchRegex } },
               ],
             },
@@ -64,12 +64,10 @@ router.get('/search', async (req, res, next) => {
           title: 1,
           description: 1,
           coverImage: 1,
-          category: 1,
-          genres: 1,
+          genre: 1,
           price: 1,
           averageRating: 1,
           reviews: 1,
-          file: 1,
           createdAt: 1,
           authorDetails: {
             _id: 1,
@@ -103,7 +101,7 @@ router.get('/search', async (req, res, next) => {
               $or: [
                 { title: { $regex: searchRegex } },
                 { description: { $regex: searchRegex } },
-                { category: { $regex: searchRegex } },
+                { genre: { $regex: searchRegex } },
                 { 'authorDetails.name': { $regex: searchRegex } },
               ],
             },
@@ -116,10 +114,18 @@ router.get('/search', async (req, res, next) => {
     const total = totalAggregation.length > 0 ? totalAggregation[0].total : 0
     const totalPages = Math.ceil(total / limit)
 
+    const books = booksAggregation.map((book) => {
+      const { authorDetails, ...rest } = book
+      const structuredBook = { ...rest, author: authorDetails }
+      return sanitizeBook(
+        formatBookWithDiscount(structuredBook),
+        req.user || {}
+      )
+    })
     res.status(200).json({
       success: true,
       message: 'Books retrieved successfully',
-      books: booksAggregation, // Your paginated books
+      books,
       currentPage: page,
       pageSize: limit,
       totalBooks: total,
@@ -145,40 +151,6 @@ function authorizeRoles(...allowedRoles) {
   }
 }
 
-//@route  GET /api/book/test
-//@desc   Tests post route
-//@access Public
-router.get('/test', (req, res) => res.json({ msg: 'Book Works' }))
-
-//@route  GET /api/book/search
-//@desc   Get books with search query
-//@access Public
-router.get('/search', async (req, res) => {
-  const query = req.query.query || ''
-  const page = parseInt(req.query.page) || 1
-  const limit = parseInt(req.query.limit) || 10
-
-  const searchFilter = getSearchFilter(query)
-
-  try {
-    const books = await Book.find(searchFilter)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .populate({ path: 'author', select: 'name email' })
-
-    const total = await Book.countDocuments(searchFilter)
-
-    res.status(200).json({
-      success: true,
-      message: 'Books retrieved successfully',
-      books,
-      total,
-    })
-  } catch (error) {
-    next(error)
-  }
-})
 // @route   PATCH /api/book/:bookId/publish
 // @desc    Toggle publish/unpublish a book
 // @access  Private (seller only)
@@ -337,12 +309,15 @@ router.patch(
       ) {
         return res.status(400).json({
           success: false,
-          message: `This book is already discounted until ${new Date(
-            book.discountEnd
-          ).toLocaleString()}. You can only apply a new discount after that.`,
+          error: {
+            details: {
+              discount: `This book is already discounted until ${new Date(
+                book.discountEnd
+              ).toLocaleString()}. You can only apply a new discount after that.`,
+            },
+          },
         })
       }
-
       // 🔥 Actually updating the discount fields
       book.discountPercentage = discountPercentage
       book.discountStart = new Date(discountStart)
@@ -353,7 +328,7 @@ router.patch(
       // ✅ Re-fetch the updated book and format it
       const updatedBook = await Book.findById(book._id).populate(
         'author',
-        'name email'
+        'name'
       )
       const formattedBook = formatBookWithDiscount(updatedBook)
 
@@ -367,6 +342,122 @@ router.patch(
     }
   }
 )
+
+// @route   PATCH /api/book/:bookId/remove-discount
+// @desc    Remove discount from a book
+// @access  Private (Only the book's seller)
+router.patch(
+  '/:bookId/remove-discount',
+  passport.authenticate('jwt', { session: false }),
+  authorizeRoles('seller'),
+  async (req, res) => {
+    const { bookId } = req.params
+    const userId = req.user.id
+
+    try {
+      const book = await Book.findById(bookId)
+
+      if (!book) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Book not found',
+          },
+        })
+      }
+
+      if (!book.author.equals(userId)) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: 'Unauthorized to modify this book',
+          },
+        })
+      }
+
+      // Reset discount fields
+      book.discountPercentage = 0
+      book.discountStart = null
+      book.discountEnd = null
+
+      await book.save()
+
+      res.status(200).json({
+        success: true,
+        message: 'Discount removed successfully',
+        book,
+      })
+    } catch (error) {
+      console.error('Error removing discount:', error)
+      res.status(500).json({
+        success: false,
+        error: {
+          message: 'Server error',
+          details: { server: error.message || 'Internal error' },
+        },
+      })
+    }
+  }
+)
+
+// @route   PATCH /api/book/:bookId/remove-discount
+// @desc    Remove discount from a book
+// @access  Private (Only the book's seller)
+router.patch(
+  '/:bookId/remove-discount',
+  passport.authenticate('jwt', { session: false }),
+  authorizeRoles('seller'),
+  async (req, res) => {
+    const { bookId } = req.params
+    const userId = req.user.id
+
+    try {
+      const book = await Book.findById(bookId)
+
+      if (!book) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Book not found',
+          },
+        })
+      }
+
+      if (!book.author.equals(userId)) {
+        return res.status(403).json({
+          success: false,
+          error: {
+            message: 'Unauthorized to modify this book',
+          },
+        })
+      }
+
+      // Reset discount fields
+      book.discountPercentage = 0
+      book.discountStart = null
+      book.discountEnd = null
+
+      await book.save()
+
+      res.status(200).json({
+        success: true,
+        message: 'Discount removed successfully',
+        book,
+      })
+    } catch (error) {
+      console.error('Error removing discount:', error)
+      res.status(500).json({
+        success: false,
+        error: {
+          message: 'Server error',
+          details: { server: error.message || 'Internal error' },
+        },
+      })
+    }
+  }
+)
+
+//Route to get genres section
 router.get('/genres', (req, res) => {
   res.status(200).json({
     success: true,
@@ -394,7 +485,7 @@ router.get('/genre/:slug', async (req, res, next) => {
       isPublished: true,
       releaseDate: { $lte: new Date() },
     })
-      .populate('author', 'name email')
+      .populate('author', 'name ')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
@@ -409,7 +500,9 @@ router.get('/genre/:slug', async (req, res, next) => {
       success: true,
       message: `Books retrieved for genre '${genreName}'`,
       genre: genreObj,
-      books,
+      books: books.map((book) =>
+        sanitizeBook(formatBookWithDiscount(book), req.user || {})
+      ),
       currentPage: page,
       pageSize: limit,
       totalBooks: total,
@@ -438,13 +531,14 @@ router.get('/discounted', async (req, res, next) => {
       isPublished: true,
       releaseDate: { $lte: now },
     })
-      .populate('author', 'name email')
+      .populate('author', 'name ')
       .skip(skip)
       .limit(limit)
       .sort({ discountPercentage: -1 })
 
-    const books = raw.map(formatBookWithDiscount)
-
+    const books = raw.map((book) =>
+      sanitizeBook(formatBookWithDiscount(book), req.user || {})
+    )
     // 3) count total for pagination
     const total = await Book.countDocuments({
       discountPercentage: { $gt: 0 },
@@ -465,83 +559,70 @@ router.get('/discounted', async (req, res, next) => {
   } catch (err) {
     next(err)
   }
-})
-//@route  GET /api/book/myBooks
-//@desc   Get books uploaded by the logged-in user
-//@access Private
+}) // @route   GET /api/book/myBooks
+// @desc    Get books uploaded by the logged-in seller, with optional search
+// @access  Private
 router.get(
   '/myBooks',
   passport.authenticate('jwt', { session: false }),
-  async (req, res, next) => {
-    const validation = validateBookQuery(req.query)
-
-    if (!validation.success) {
-      const error = new Error('Validation failed')
-      error.status = 400
-      error.details = validation.error.details
-      return next(error)
-    }
-
-    const { page, limit } = validation.value
+  async (req, res) => {
+    const page = Math.max(1, parseInt(req.query.page) || 1)
+    const limit = Math.max(1, parseInt(req.query.limit) || 10)
     const skip = (page - 1) * limit
+    const query = req.query.query || ''
+    const searchRegex = new RegExp(query, 'i')
 
     try {
-      const books = await Book.find({ author: req.user.id })
-        .populate('author', 'name email')
-        .sort({ isPublished: 1, createdAt: -1 })
+      const books = await Book.find({
+        author: req.user.id,
+        $or: [
+          { title: { $regex: searchRegex } },
+          { description: { $regex: searchRegex } },
+          { genre: { $regex: searchRegex } },
+        ],
+      })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .populate('author', 'name email')
 
-      const totalBooks = await Book.countDocuments({
+      const total = await Book.countDocuments({
         author: req.user.id,
+        $or: [
+          { title: { $regex: searchRegex } },
+          { description: { $regex: searchRegex } },
+          { genre: { $regex: searchRegex } },
+        ],
       })
 
-      if (books.length === 0) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            details: {
-              author: 'No books found for this user',
-            },
-          },
-        })
-      }
-
-      const booksDetails = books.map((book) => ({
-        _id: book._id,
-        title: book.title,
-        price: book.price,
-        discountPercentage: book.discountPercentage,
-
-        category: book.category,
-        genres: book.genres,
-        description: book.description,
-        coverImage: book.coverImage,
-        publisher: book.publisher,
-        isbn: book.isbn,
-        releaseDate: book.releaseDate,
-        file: book.file,
-        isPublished: book.isPublished,
-        status: book.isPublished ? 'Published' : 'Unpublished',
-        createdAt: book.createdAt,
-        updatedAt: book.updatedAt,
-      }))
-      const totalPages = Math.ceil(totalBooks / limit)
+      const totalPages = Math.ceil(total / limit)
 
       res.status(200).json({
         success: true,
-        message: 'Books retrieved successfully',
-        books: booksDetails,
+        message: 'Your books retrieved successfully',
+        books: books.map((book) =>
+          sanitizeBook(formatBookWithDiscount(book), req.user)
+        ),
         currentPage: page,
         pageSize: limit,
-        totalBooks,
+        totalBooks: total,
         totalPages,
       })
     } catch (error) {
-      next(error)
+      console.error('Error fetching seller books:', error)
+      return res.status(500).json({
+        success: false,
+        error: {
+          message: 'Server error',
+          details: {
+            server: error.message || 'Internal server error',
+          },
+        },
+      })
     }
   }
 )
+
 //@route  GET /api/book/my-discounted
 //@desc   Get discounted books uploaded by the logged-in seller
 //@access Private
@@ -568,8 +649,7 @@ router.get(
           $or: [
             { title: { $regex: searchRegex } },
             { description: { $regex: searchRegex } },
-            { category: { $regex: searchRegex } },
-            { genres: { $regex: searchRegex } },
+            { genre: { $regex: searchRegex } },
             { publisher: { $regex: searchRegex } },
           ],
         },
@@ -581,7 +661,7 @@ router.get(
         .skip(skip)
         .limit(limit)
         .sort({ discountPercentage: -1 })
-        .populate('author', 'name email')
+        .populate('author', 'name ')
 
       const books = raw.map(formatBookWithDiscount)
 
@@ -603,47 +683,6 @@ router.get(
   }
 )
 
-router.get('/categories-and-genres', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Category and genre options',
-    data: categoriesWithGenres,
-  })
-})
-
-//@route  GET /api/book/category/:category
-//@desc   Get books by category
-//@access Public
-router.get('/category/:category', async (req, res, next) => {
-  const category = req.params.category
-  const page = parseInt(req.query.page) || 1
-  const limit = parseInt(req.query.limit) || 10
-
-  try {
-    const books = await Book.find({
-      category: { $regex: new RegExp(`^${category}$`, 'i') },
-      isPublished: true,
-      releaseDate: { $lte: new Date() },
-    })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-
-    const total = await Book.countDocuments({
-      category: { $regex: new RegExp(`^${category}$`, 'i') },
-    })
-
-    res.status(200).json({
-      success: true,
-      message: 'Books retrieved by categories',
-      books,
-      total,
-    })
-  } catch (error) {
-    next(error)
-  }
-})
-
 //@route  GET /api/book/new
 //@desc   Get newly added books (sorted by createdAt)
 //@access Public
@@ -659,15 +698,16 @@ router.get('/new', async (req, res) => {
       .sort({ createdAt: -1 }) // Most recent first
       .skip(skip)
       .limit(limit)
-      .populate({ path: 'author', select: 'name email' }) // Include author details
+      .populate({ path: 'author', select: 'name ' }) // Include author details
 
     const total = await Book.countDocuments({
       isPublished: true,
       releaseDate: { $lte: new Date() },
     })
 
-    const books = rawBooks.map(formatBookWithDiscount)
-
+    const books = rawBooks.map((book) =>
+      sanitizeBook(formatBookWithDiscount(book), req.user || {})
+    )
     res.status(200).json({
       success: true,
       message: 'Newly added books retrieved',
@@ -699,7 +739,7 @@ router.get('/free', async (req, res, next) => {
 
   try {
     const books = await Book.find({ price: 0, isPublished: true })
-      .populate('author', 'name email')
+      .populate('author', 'name ')
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 })
@@ -711,7 +751,7 @@ router.get('/free', async (req, res, next) => {
       success: true,
       message: 'Free books retrieved successfully',
       total,
-      books,
+      books: books.map((book) => sanitizeBook(book, req.user || {})),
       currentPage: page,
       pageSize: limit,
       totalPages,
@@ -738,7 +778,7 @@ router.get('/top-rated', async (req, res, next) => {
       .sort({ averageRating: -1, createdAt: -1 }) // Highest rated first
       .skip(skip)
       .limit(limit)
-      .populate({ path: 'author', select: 'name email' })
+      .populate({ path: 'author', select: 'name ' })
 
     const total = await Book.countDocuments({
       isPublished: true,
@@ -746,8 +786,9 @@ router.get('/top-rated', async (req, res, next) => {
       averageRating: { $gt: 0 },
     })
 
-    const books = rawBooks.map(formatBookWithDiscount)
-
+    const books = rawBooks.map((book) =>
+      sanitizeBook(formatBookWithDiscount(book), req.user || {})
+    )
     res.status(200).json({
       success: true,
       message: 'Top rated books retrieved',
@@ -769,106 +810,6 @@ router.get('/top-rated', async (req, res, next) => {
     })
   }
 })
-//@route  GET /api/book/genre/:genre
-//@desc   Get books by a specific genre
-//@access Public
-router.get('/genre/:genre', async (req, res, next) => {
-  const genre = req.params.genre
-  const page = Math.max(1, parseInt(req.query.page) || 1)
-  const limit = parseInt(req.query.limit) || 10
-  const skip = (page - 1) * limit
-
-  try {
-    const books = await Book.find({
-      genres: { $regex: new RegExp(`^${genre}$`, 'i') },
-      isPublished: true,
-      releaseDate: { $lte: new Date() },
-    })
-      .populate('author', 'name email')
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-
-    const total = await Book.countDocuments({
-      genres: { $regex: new RegExp(`^${genre}$`, 'i') },
-    })
-    const totalPages = Math.ceil(total / limit)
-
-    res.status(200).json({
-      success: true,
-      message: `Books retrieved successfully for genre '${genre}'`,
-      books,
-      currentPage: page,
-      pageSize: limit,
-      totalBooks: total,
-      totalPages,
-    })
-  } catch (error) {
-    next(error)
-  }
-})
-
-//Get a single book
-router.get('/:id', optionalAuth, async (req, res, next) => {
-  const { id } = req.params
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Validation failed',
-        details: { id: 'Invalid book ID' },
-      },
-    })
-  }
-
-  try {
-    const book = await Book.findById(id).populate('author', 'name email')
-    if (!book) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: { id: 'Invalid book ID' },
-        },
-      })
-    }
-
-    const now = new Date()
-    const isReleased = book.releaseDate && book.releaseDate <= now
-    const isPublic = book.isPublished && isReleased
-    const isOwner = req.user && book.author._id.toString() === req.user.id
-
-    if (!isPublic && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          message: 'Access denied',
-          details: {
-            book: 'Book is not yet released or accessible by this user',
-          },
-        },
-      })
-    }
-
-    const bookObj = book.toObject()
-    bookObj.releaseDateFormatted = book.releaseDate
-      ? new Date(book.releaseDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
-      : null
-
-    return res.status(200).json({
-      success: true,
-      message: 'Book retrieved successfully',
-      book: bookObj,
-    })
-  } catch (error) {
-    next(error)
-  }
-})
 
 //@route  GET /api/book
 //@desc   Get all books with pagination
@@ -886,7 +827,7 @@ router.get('/', async (req, res, next) => {
       isPublished: true,
       releaseDate: { $lte: new Date() },
     })
-      .populate('author', 'name email')
+      .populate('author', 'name ')
       .skip((page - 1) * limit)
       .limit(limit)
       .sort({ createdAt: -1 })
@@ -899,7 +840,7 @@ router.get('/', async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Books retrieved successfully',
-      books,
+      books: books.map((book) => sanitizeBook(book, req.user || {})),
       currentPage: page,
       pageSize: limit,
       totalBooks: total,
@@ -926,8 +867,7 @@ router.post(
       const {
         title,
         price,
-        category,
-        genres,
+        genre,
         description,
         coverImage,
         filePath,
@@ -940,8 +880,7 @@ router.post(
         title,
         author: req.user.id,
         price,
-        category,
-        genres,
+        genre,
         description,
         coverImage,
         publisher,
@@ -951,6 +890,8 @@ router.post(
       })
 
       await book.save()
+      await book.populate('author', 'name')
+
       res
         .status(201)
         .json({ success: true, message: 'Book uploaded successfully', book })
@@ -987,7 +928,7 @@ router.put(
     const {
       title,
       price,
-      category,
+      genre,
       description,
       coverImage,
       filePath,
@@ -1020,7 +961,7 @@ router.put(
 
       book.title = title
       book.price = price
-      book.category = category
+      book.genre = genre
       book.description = description
       book.coverImage = coverImage
       book.publisher = publisher
@@ -1036,15 +977,15 @@ router.put(
   }
 )
 
+//GET one book
 router.get('/:id', optionalAuth, async (req, res, next) => {
   const { id } = req.params
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ success: false, message: 'Invalid book ID' })
   }
 
   try {
-    const book = await Book.findById(id).populate('author', 'name email')
+    const book = await Book.findById(id).populate('author', 'name')
 
     if (!book) {
       return res.status(404).json({ success: false, message: 'Book not found' })
@@ -1053,8 +994,10 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     const now = new Date()
     const isReleased = book.releaseDate && book.releaseDate <= now
     const isPublic = book.isPublished && isReleased
-    const isOwner =
-      req.user && book.author && book.author._id?.toString() === req.user.id
+
+    const user = req.user || {}
+    const isOwner = book.author && book.author._id?.toString() === user.id
+    const isSeller = Array.isArray(user.role) && user.role.includes('seller')
 
     if (!isPublic && !isOwner) {
       return res
@@ -1062,7 +1005,8 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
         .json({ success: false, message: 'Book not released yet' })
     }
 
-    const bookObj = book.toObject()
+    const bookObj = sanitizeBook(book, req.user || {})
+
     bookObj.releaseDateFormatted = book.releaseDate
       ? new Date(book.releaseDate).toLocaleDateString('en-US', {
           year: 'numeric',
@@ -1131,10 +1075,10 @@ router.delete(
   }
 )
 
-// Limit: 1 review per minute per IP
+// Limit: 1 review per 3 minute per IP
 const reviewLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 1,
+  windowMs: 3 * 60 * 1000,
+  max: 5,
   success: false,
   message: 'Too many reviews from this IP. Please try again shortly.',
 })

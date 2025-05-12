@@ -1,6 +1,4 @@
 import Joi from 'joi'
-import { categoriesWithGenres } from '../config/categoriesGenres.js'
-const validCategories = Object.keys(categoriesWithGenres)
 
 export const validateBook = (data) => {
   const schema = Joi.object({
@@ -12,29 +10,9 @@ export const validateBook = (data) => {
       'number.min': 'Price cannot be negative.',
       'any.required': 'Price is required.',
     }),
-    category: Joi.string()
-      .valid(...validCategories)
-      .required()
-      .messages({
-        'any.only': 'Invalid category.',
-        'string.empty': 'Category is required.',
-        'any.required': 'Category is required.',
-      }),
-    genres: Joi.array()
-      .items(Joi.string())
-      .min(1)
-      .required()
-      .custom((genres, helpers) => {
-        const category = helpers?.state?.ancestors?.[0]?.category
-        const allowed = categoriesWithGenres[category] || []
-        const invalid = genres.filter((g) => !allowed.includes(g))
-        if (invalid.length) {
-          return helpers.message(
-            `Invalid genre(s) for category '${category}': ${invalid.join(', ')}`
-          )
-        }
-        return genres
-      }),
+    genre: Joi.string().trim().required().messages({
+      'string.empty': 'Genre is required.',
+    }),
     description: Joi.string().trim().allow('').messages({
       'string.empty': 'Description cannot be empty.',
     }),
