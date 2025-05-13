@@ -56,11 +56,7 @@ const BookSchema = new Schema(
       //format: { type: String, enum: ["PDF", "EPUB"], required: true }, // File format
       // encryptionKey: { type: String, required: true }, // Optional encryption key
     },
-    reviews: [reviewSchema], // Anonymous user reviews
-    averageRating: {
-      type: Number,
-      default: 0,
-    },
+
     discountPercentage: { type: Number, default: 0 },
     discountStart: { type: Date, default: null },
     discountEnd: { type: Date, default: null },
