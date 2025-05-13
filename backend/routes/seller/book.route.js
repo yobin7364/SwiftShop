@@ -5,8 +5,10 @@ import { validateBook } from '../../validator/book.validator.js'
 import Book from '../../models/Book.module.js'
 import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
-
+import Review from '../../models/Review.module.js'
 import { formatBookWithDiscount } from '../../utils/discountHelper.js'
+import { formatReview } from '../../utils/formatReview.js'
+
 import { expressjwt } from 'express-jwt'
 import keys from '../../config/keys.config.js'
 import { genresList } from '../../config/genresList.js'
@@ -141,11 +143,16 @@ function authorizeRoles(...allowedRoles) {
   return (req, res, next) => {
     const userRoles = req.user.role || []
     const isAuthorized = allowedRoles.some((role) => userRoles.includes(role))
-
     if (!isAuthorized) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Forbidden: Insufficient role' })
+      return res.status(403).json({
+        success: false,
+        error: {
+          message: 'Access denied',
+          details: {
+            role: 'Forbidden: Insufficient permissions',
+          },
+        },
+      })
     }
     next()
   }
@@ -400,64 +407,9 @@ router.patch(
   }
 )
 
-// @route   PATCH /api/book/:bookId/remove-discount
-// @desc    Remove discount from a book
-// @access  Private (Only the book's seller)
-router.patch(
-  '/:bookId/remove-discount',
-  passport.authenticate('jwt', { session: false }),
-  authorizeRoles('seller'),
-  async (req, res) => {
-    const { bookId } = req.params
-    const userId = req.user.id
 
-    try {
-      const book = await Book.findById(bookId)
-
-      if (!book) {
-        return res.status(404).json({
-          success: false,
-          error: {
-            message: 'Book not found',
-          },
-        })
-      }
-
-      if (!book.author.equals(userId)) {
-        return res.status(403).json({
-          success: false,
-          error: {
-            message: 'Unauthorized to modify this book',
-          },
-        })
-      }
-
-      // Reset discount fields
-      book.discountPercentage = 0
-      book.discountStart = null
-      book.discountEnd = null
-
-      await book.save()
-
-      res.status(200).json({
-        success: true,
-        message: 'Discount removed successfully',
-        book,
-      })
-    } catch (error) {
-      console.error('Error removing discount:', error)
-      res.status(500).json({
-        success: false,
-        error: {
-          message: 'Server error',
-          details: { server: error.message || 'Internal error' },
-        },
-      })
-    }
-  }
-)
-
-//Route to get genres section
+// @route   GET /api/book/genres
+// @desc    Get all genres 
 router.get('/genres', (req, res) => {
   res.status(200).json({
     success: true,
@@ -466,6 +418,8 @@ router.get('/genres', (req, res) => {
   })
 })
 
+// @route   GET /api/book/genre/:slug
+// @desc    Get specific genres
 router.get('/genre/:slug', async (req, res, next) => {
   const genreSlug = req.params.slug.toLowerCase()
   const genreObj = genresList.find((g) => g.slug === genreSlug)
@@ -976,19 +930,37 @@ router.put(
     }
   }
 )
-
-//GET one book
+//get /api/book/:id
+//desc Get one single book
+//@access Public
 router.get('/:id', optionalAuth, async (req, res, next) => {
   const { id } = req.params
+
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid book ID' })
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details: {
+          id: 'Invalid book ID',
+        },
+      },
+    })
   }
 
   try {
     const book = await Book.findById(id).populate('author', 'name')
 
     if (!book) {
-      return res.status(404).json({ success: false, message: 'Book not found' })
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Book not found',
+          details: {
+            id: 'No book found with this ID',
+          },
+        },
+      })
     }
 
     const now = new Date()
@@ -997,15 +969,37 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 
     const user = req.user || {}
     const isOwner = book.author && book.author._id?.toString() === user.id
-    const isSeller = Array.isArray(user.role) && user.role.includes('seller')
 
     if (!isPublic && !isOwner) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Book not released yet' })
+      return res.status(403).json({
+        success: false,
+        error: {
+          message: 'Access denied',
+          details: {
+            access: 'Book not released yet or you are not the owner',
+          },
+        },
+      })
     }
 
     const bookObj = sanitizeBook(book, req.user || {})
+
+    const recentReviews = await Review.find({ bookId: id })
+      .sort({ createdAt: -1 })
+      .limit(3)
+
+    const totalReviews = await Review.countDocuments({ bookId: id })
+
+    const avgRatingAgg = await Review.aggregate([
+      { $match: { bookId: new mongoose.Types.ObjectId(id) } },
+      { $group: { _id: '$bookId', avgRating: { $avg: '$rating' } } },
+    ])
+    const averageRating = avgRatingAgg[0]?.avgRating?.toFixed(2) || '0.00'
+
+    bookObj.reviews = recentReviews.map(formatReview)
+    bookObj.totalReviews = totalReviews
+    bookObj.averageRating = averageRating
+
 
     bookObj.releaseDateFormatted = book.releaseDate
       ? new Date(book.releaseDate).toLocaleDateString('en-US', {
@@ -1083,20 +1077,18 @@ const reviewLimiter = rateLimit({
   message: 'Too many reviews from this IP. Please try again shortly.',
 })
 
-// @route   POST /api/book/:id/review
-// @desc    Add an anonymous review to a book
-// @access  Public
+
+//POST /api/book/:id/review
 router.post('/:id/review', reviewLimiter, async (req, res, next) => {
-  const bookId = req.params.id
+  const { id } = req.params
   const { comment, rating } = req.body
 
-  if (!mongoose.Types.ObjectId.isValid(bookId)) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({
       success: false,
       error: {
-        details: {
-          id: 'Invalid book id',
-        },
+        message: 'Validation failed',
+        details: { id: 'Invalid book ID' },
       },
     })
   }
@@ -1105,119 +1097,139 @@ router.post('/:id/review', reviewLimiter, async (req, res, next) => {
     return res.status(400).json({
       success: false,
       error: {
-        details: {
-          comment: 'Comment is required',
-        },
+        message: 'Validation failed',
+        details: { comment: 'Comment is required' },
       },
     })
   }
 
   const sanitizedComment = sanitizeHtml(comment.trim())
   const numericRating = Number(rating)
-  const validRating =
-    !isNaN(numericRating) && numericRating >= 1 && numericRating <= 5
+
+  if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details: { rating: 'Rating must be between 1 and 5' },
+      },
+    })
+  }
 
   try {
-    const book = await Book.findById(bookId)
-    if (!book) {
+    const bookExists = await Book.exists({ _id: id })
+
+    if (!bookExists) {
       return res.status(404).json({
         success: false,
         error: {
-          details: {
-            id: 'Book not found',
-          },
+          message: 'Book not found',
+          details: { id: 'No book found with this ID' },
         },
       })
     }
 
-    // Add anonymous review
-    book.reviews.push({
-      name: 'Anonymous',
+    const review = new Review({
+      bookId: id,
       comment: sanitizedComment,
-      rating: validRating ? numericRating : undefined,
+      rating: numericRating,
+      name: 'Anonymous',
     })
 
-    // Update average rating
-    book.calculateAverageRating()
+    await review.save()
 
-    await book.save()
+    // Calculate new average rating
+    const agg = await Review.aggregate([
+      { $match: { bookId: new mongoose.Types.ObjectId(id) } },
+      {
+        $group: {
+          _id: '$bookId',
+          avgRating: { $avg: '$rating' },
+        },
+      },
+    ])
+
+    const averageRating = agg.length > 0 ? agg[0].avgRating.toFixed(2) : '0.00'
 
     res.status(201).json({
       success: true,
       message: 'Review added successfully',
-      reviews: book.reviews,
-      averageRating: book.averageRating.toFixed(2),
+      averageRating,
+      review: formatReview(review),
     })
   } catch (error) {
     next(error)
   }
 })
 
+
+//get /api/book/:id/reviews
+//desc get reviews
 router.get('/:id/reviews', async (req, res, next) => {
   const { id } = req.params
-
-  // Validate pagination query
-  const validation = validateBookQuery(req.query)
-  if (!validation.success) {
-    const err = new Error('Validation failed')
-    err.status = 400
-    err.details = validation.error.details
-    return next(err)
-  }
-
-  const { page, limit } = validation.value
+  const page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 5
   const skip = (page - 1) * limit
 
-  // Validate ObjectId
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    const err = new Error('Invalid book ID')
-    err.status = 400
-    err.details = { id: 'Book ID must be valid' }
-    return next(err)
+    return res.status(400).json({
+      success: false,
+      error: {
+        message: 'Validation failed',
+        details: { id: 'Invalid book ID' },
+      },
+    })
   }
 
   try {
-    const book = await Book.findById(id)
+    const bookExists = await Book.exists({ _id: id })
 
-    if (!book) {
-      const err = new Error('Book not found')
-      err.status = 404
-      err.details = { id: 'Book id is required' }
-      return next(err)
+    if (!bookExists) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          message: 'Book not found',
+          details: { id: 'No book found with this ID' },
+        },
+      })
     }
 
-    const sortedReviews = book.reviews.sort((a, b) => b.createdAt - a.createdAt)
+    const reviews = await Review.find({ bookId: id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
 
-    const paginatedReviews = sortedReviews.slice(skip, skip + limit)
-    const formattedReviews = paginatedReviews.map((review) => ({
-      name: review.name,
-      comment: review.comment,
-      rating: review.rating,
-      createdAt: new Date(review.createdAt).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    }))
+    const totalReviews = await Review.countDocuments({ bookId: id })
 
-    const totalReviews = book.reviews.length
-    const totalPages = Math.ceil(totalReviews / limit)
+    const averageRatingAgg = await Review.aggregate([
+      { $match: { bookId: new mongoose.Types.ObjectId(id) } },
+      {
+        $group: {
+          _id: '$bookId',
+          avgRating: { $avg: '$rating' },
+        },
+      },
+    ])
 
-    return res.status(200).json({
+    const averageRating =
+      averageRatingAgg.length > 0
+        ? averageRatingAgg[0].avgRating.toFixed(2)
+        : '0.00'
+
+    res.status(200).json({
       success: true,
       message: 'Reviews retrieved successfully',
-      averageRating: book.averageRating,
-      reviews: formattedReviews,
+      reviews: reviews.map(formatReview),
+      averageRating,
       currentPage: page,
       pageSize: limit,
       totalReviews,
-      totalPages,
+      totalPages: Math.ceil(totalReviews / limit),
     })
   } catch (error) {
     next(error)
   }
 })
+
 
 export default router
