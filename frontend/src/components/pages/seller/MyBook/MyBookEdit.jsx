@@ -11,13 +11,18 @@ import {
   Typography,
   MenuItem,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
-import { editSellerBookAction } from "../../../../action/BookAction";
+import {
+  editSellerBookAction,
+  getSellerBookAction,
+} from "../../../../action/BookAction";
 import { showToast } from "../../../../redux/toastSlice";
-import { getSellerBookAction } from "../../../../action/BookAction";
 
 const genreList = [
   { name: "Action", slug: "action" },
@@ -42,21 +47,37 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
     formState: { errors },
   } = useForm();
 
+  // Define the genre state
+  const [genre, setGenre] = React.useState("");
+
+  const handleGenreChange = (event) => {
+    setGenre(event.target.value); // Update the genre state on selection change
+  };
+
   useEffect(() => {
-    if (book) {
+    if (book && genreList.length > 0) {
+      // Map genre name (e.g., "Action") to slug (e.g., "action")
+      const matchedGenre = genreList.find(
+        (g) => g.name.toLowerCase() === book.genre?.toLowerCase()
+      );
+
+      // Set the genre state based on the genre from the book
+      setGenre(matchedGenre ? matchedGenre.slug : "");
+
+      // Reset form with book data
       reset({
-        title: book.title,
-        price: book.price,
-        genre: Array.isArray(book.genres) ? book.genres[0] : book.genre,
-        publisher: book.publisher,
-        ISBN: book.isbn,
-        releaseDateTime: book.releaseDate?.slice(0, 16),
-        description: book.description,
-        coverImage: book.coverImage,
-        filePath: book.file?.filePath || book.filePath,
+        title: book.title || "",
+        price: book.price || "",
+        genre: matchedGenre ? matchedGenre.slug : "", // Set initial genre value
+        publisher: book.publisher || "",
+        ISBN: book.isbn || "",
+        releaseDateTime: book.releaseDate?.slice(0, 16) || "",
+        description: book.description || "",
+        coverImage: book.coverImage || "",
+        filePath: book.file?.filePath || book.filePath || "",
       });
     }
-  }, [book, reset]);
+  }, [open, book, reset]);
 
   useEffect(() => {
     if (error && typeof error === "string") {
@@ -64,13 +85,14 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
     }
   }, [error, dispatch]);
 
-  const getMinDateTime = () => new Date().toISOString().slice(0, 16);
-
   const onSubmit = async (data) => {
+    const genreName =
+      genreList.find((g) => g.slug === data.genre)?.name || data.genre;
+
     const bookData = {
       title: data.title,
       price: parseFloat(data.price),
-      genre: data.genre,
+      genre: genreName, // save name, not slug
       description: data.description || "",
       coverImage: data.coverImage,
       filePath: data.filePath,
@@ -160,21 +182,30 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             error={!!errors.price}
             helperText={errors.price?.message}
           />
-          <TextField
-            fullWidth
-            label="Genre"
-            margin="normal"
-            select
-            {...register("genre", { required: "Genre is required" })}
-            error={!!errors.genre}
-            helperText={errors.genre?.message}
-          >
-            {genreList.map((g) => (
-              <MenuItem key={g.slug} value={g.name}>
-                {g.name}
-              </MenuItem>
-            ))}
-          </TextField>
+
+          {/* Genre Select */}
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="genre-label">Genre</InputLabel>
+            <Select
+              labelId="genre-label"
+              id="genre-select"
+              value={genre} // Bind genre state to value
+              label="Genre"
+              onChange={handleGenreChange} // Handle change
+              {...register("genre", { required: "Genre is required" })}
+              error={!!errors.genre}
+            >
+              {genreList.map((g) => (
+                <MenuItem key={g.slug} value={g.slug}>
+                  {g.name}
+                </MenuItem>
+              ))}
+            </Select>
+            {errors.genre && (
+              <Typography color="error">{errors.genre?.message}</Typography>
+            )}
+          </FormControl>
+
           <TextField
             fullWidth
             label="Publisher"
@@ -183,6 +214,7 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             error={!!errors.publisher}
             helperText={errors.publisher?.message}
           />
+
           <TextField
             fullWidth
             label="ISBN"
@@ -210,8 +242,8 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
                 e.preventDefault();
               }
             }}
-            error={!!errors.isbn}
-            helperText={errors.isbn?.message}
+            error={!!errors.ISBN}
+            helperText={errors.ISBN?.message}
           />
 
           <Typography variant="subtitle2" sx={{ mt: 2 }}>
@@ -238,6 +270,7 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             rows={3}
             {...register("description")}
           />
+
           <TextField
             fullWidth
             label="Cover Image URL"
@@ -248,6 +281,7 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
             error={!!errors.coverImage}
             helperText={errors.coverImage?.message}
           />
+
           <TextField
             fullWidth
             label="Book File URL"
@@ -261,12 +295,13 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
 
           <DialogActions sx={{ mt: 2 }}>
             <Button onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                "Save"
-              )}
+            <Button
+              type="submit"
+              color="primary"
+              disabled={loading}
+              startIcon={loading && <CircularProgress size={20} />}
+            >
+              Save Changes
             </Button>
           </DialogActions>
         </Box>

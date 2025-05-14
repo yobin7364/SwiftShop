@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import {
   getSellerDiscountedBookAction,
   updateSellerDiscountedBookAction,
+  deleteSellerDiscountedBookAction,
 } from "../action/DiscountAction";
 
 const initialState = {
@@ -11,6 +12,9 @@ const initialState = {
 
   loadingUpdateDiscount: false,
   errorUpdateDiscount: null,
+
+  loadingDeleteDiscount: false,
+  errorDeleteDiscount: null,
 };
 
 const sellerDiscountSlice = createSlice({
@@ -44,6 +48,20 @@ const sellerDiscountSlice = createSlice({
       .addCase(updateSellerDiscountedBookAction.rejected, (state, action) => {
         state.loadingUpdateDiscount = false;
         state.errorUpdateDiscount = action.payload;
+      })
+
+      // Delete Discounted Books
+      .addCase(deleteSellerDiscountedBookAction.pending, (state) => {
+        state.loadingDeleteDiscounted = true;
+        state.errorDeleteDiscounted = null;
+      })
+      .addCase(deleteSellerDiscountedBookAction.fulfilled, (state, action) => {
+        state.loadingDeleteDiscounted = false;
+        // state.discountedBooks = action.payload;
+      })
+      .addCase(deleteSellerDiscountedBookAction.rejected, (state, action) => {
+        state.loadingDeleteDiscounted = false;
+        state.errorDeleteDiscounted = action.payload;
       });
   },
 });
