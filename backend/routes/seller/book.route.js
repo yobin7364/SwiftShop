@@ -18,10 +18,19 @@ import { sanitizeBook } from '../../utils/sanitizeBook.js'
 const router = express.Router()
 
 const optionalAuth = expressjwt({
-  secret: keys.secretOrKey,
-  algorithms: ['HS256'],
-  credentialsRequired: false, // 👈 this makes JWT optional
+  secret: keys.secretOrKey, // ✅ Must match the secret used in jwt.sign(...)
+  algorithms: ['HS256'], // ✅ Must match the algorithm used
+  credentialsRequired: false, // ✅ Makes the token optional
+  requestProperty: 'user', // ✅ Decoded token will be saved to req.user
+  getToken: (req) => {
+    const auth = req.headers.authorization
+    if (auth && auth.startsWith('Bearer ')) {
+      return auth.split(' ')[1]
+    }
+    return null
+  },
 })
+
 //@route  GET /api/book/search
 //@desc   Search books by title, description, genre or author name
 //@access Public
@@ -318,7 +327,7 @@ router.patch(
           success: false,
           error: {
             details: {
-              discount: `This book is already discounted until ${new Date(
+              discountPercentage: `This book is already discounted until ${new Date(
                 book.discountEnd
               ).toLocaleString()}. You can only apply a new discount after that.`,
             },
@@ -904,14 +913,6 @@ router.put(
           .status(403)
           .json({ success: false, message: 'Unauthorized to update this book' })
       }
-      if (
-        !book.isPublished ||
-        (book.releaseDate && book.releaseDate > new Date())
-      ) {
-        return res
-          .status(403)
-          .json({ success: false, message: 'Book not released yet' })
-      }
 
       book.title = title
       book.price = price
@@ -966,9 +967,11 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     const now = new Date()
     const isReleased = book.releaseDate && book.releaseDate <= now
     const isPublic = book.isPublished && isReleased
+console.log('REQ.USER:', req.user)
+console.log('AUTH HEADER:', req.headers.authorization)
 
-    const user = req.user || {}
-    const isOwner = book.author && book.author._id?.toString() === user.id
+    const userId = req.user?.id 
+    const isOwner = book.author && book.author._id?.toString() === userId
 
     if (!isPublic && !isOwner) {
       return res.status(403).json({
@@ -1079,88 +1082,102 @@ const reviewLimiter = rateLimit({
 
 
 //POST /api/book/:id/review
-router.post('/:id/review', reviewLimiter, async (req, res, next) => {
-  const { id } = req.params
-  const { comment, rating } = req.body
+router.post(
+  '/:id/review',
+  (req, res, next) => {
+    passport.authenticate('jwt', { session: false }, (err, user, info) => {
+      if (err || !user) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            message: 'Authentication required',
+            details: {
+              auth: 'You must be logged in to submit a review',
+            },
+          },
+        })
+      }
+      req.user = user
+      next()
+    })(req, res, next)
+  },
+  reviewLimiter,
+  async (req, res, next) => {
+    const { id } = req.params
+    const { comment, rating } = req.body
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Validation failed',
-        details: { id: 'Invalid book ID' },
-      },
-    })
-  }
-
-  if (!comment || typeof comment !== 'string' || comment.trim() === '') {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Validation failed',
-        details: { comment: 'Comment is required' },
-      },
-    })
-  }
-
-  const sanitizedComment = sanitizeHtml(comment.trim())
-  const numericRating = Number(rating)
-
-  if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Validation failed',
-        details: { rating: 'Rating must be between 1 and 5' },
-      },
-    })
-  }
-
-  try {
-    const bookExists = await Book.exists({ _id: id })
-
-    if (!bookExists) {
-      return res.status(404).json({
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
         success: false,
         error: {
-          message: 'Book not found',
-          details: { id: 'No book found with this ID' },
+          message: 'Validation failed',
+          details: { id: 'Invalid book ID' },
         },
       })
     }
 
-    const review = new Review({
-      bookId: id,
-      comment: sanitizedComment,
-      rating: numericRating,
-      name: 'Anonymous',
-    })
+    const sanitizedComment =
+      typeof comment === 'string' ? sanitizeHtml(comment.trim()) : ''
 
-    await review.save()
+    const numericRating = Number(rating)
 
-    // Calculate new average rating
-    const agg = await Review.aggregate([
-      { $match: { bookId: new mongoose.Types.ObjectId(id) } },
-      {
-        $group: {
-          _id: '$bookId',
-          avgRating: { $avg: '$rating' },
+    if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: { rating: 'Rating must be between 1 and 5' },
         },
-      },
-    ])
+      })
+    }
 
-    const averageRating = agg.length > 0 ? agg[0].avgRating.toFixed(2) : '0.00'
+    try {
+      const bookExists = await Book.exists({ _id: id })
 
-    res.status(201).json({
-      success: true,
-      message: 'Review added successfully',
-      averageRating,
-      review: formatReview(review),
-    })
-  } catch (error) {
-    next(error)
+      if (!bookExists) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Book not found',
+            details: { id: 'No book found with this ID' },
+          },
+        })
+      }
+
+      const review = new Review({
+        bookId: id,
+        comment: sanitizedComment,
+        rating: numericRating,
+        name: 'Anonymous',
+      })
+
+      await review.save()
+
+      // Calculate new average rating
+      const agg = await Review.aggregate([
+        { $match: { bookId: new mongoose.Types.ObjectId(id) } },
+        {
+          $group: {
+            _id: '$bookId',
+            avgRating: { $avg: '$rating' },
+          },
+        },
+      ])
+
+      const averageRating =
+        agg.length > 0 ? agg[0].avgRating.toFixed(2) : '0.00'
+
+      res.status(201).json({
+        success: true,
+        message: 'Review added successfully',
+        averageRating,
+        review: formatReview(review),
+      })
+    } catch (error) {
+      next(error)
+    }
   }
-})
+)
 
 
 //get /api/book/:id/reviews
