@@ -37,3 +37,20 @@ export const updateSellerDiscountedBookAction = createAsyncThunk(
     }
   }
 );
+
+// Delete seller discounted book
+
+export const deleteSellerDiscountedBookAction = createAsyncThunk(
+  "books/seller/myBooks/delete/discount",
+  async ({ bookId }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.patch(`api/book/${bookId}/remove-discount`);
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details ||
+          "Failed to remove discount for book"
+      );
+    }
+  }
+);

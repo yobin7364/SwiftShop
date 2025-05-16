@@ -179,13 +179,6 @@ const BookDetail = () => {
               </Typography>
             )}
           </Box>
-
-          <Box mt={2} display="flex" flexWrap="wrap" gap={1}>
-            <Chip icon={<LocalOfferIcon />} label={book.category} />
-            {book.genres.map((g, i) => (
-              <Chip key={i} label={g} />
-            ))}
-          </Box>
         </Grid>
       </Grid>
 

@@ -140,12 +140,12 @@ export default function DiscountTable() {
                     {new Date(book.discountEnd).toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    <IconButton
+                    {/* <IconButton
                       color="primary"
                       onClick={() => setEditDiscount(book)}
                     >
                       <Edit />
-                    </IconButton>
+                    </IconButton> */}
                     <IconButton
                       color="error"
                       onClick={() => setDeleteDiscount(book)}

@@ -40,9 +40,7 @@ export default function MyBookView({ open, onClose, book }) {
             <Typography>
               <strong>Price:</strong> ${book.price}
             </Typography>
-            <Typography>
-              <strong>Category:</strong> {book.category}
-            </Typography>
+
             <Typography>
               <strong>Publisher:</strong> {book.publisher}
             </Typography>
