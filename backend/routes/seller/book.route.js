@@ -17,6 +17,7 @@ import { validateBookQuery } from '../../validator/bookQuery.validator.js'
 import { sanitizeBook } from '../../utils/sanitizeBook.js'
 const router = express.Router()
 
+
 const optionalAuth = expressjwt({
   secret: keys.secretOrKey,
   algorithms: ['HS256'],
@@ -225,9 +226,8 @@ router.patch(
 
       res.status(200).json({
         success: true,
-        message: `Book has been ${
-          publish ? 'published' : 'unpublished'
-        } successfully.`,
+        message: `Book has been ${publish ? 'published' : 'unpublished'
+          } successfully.`,
         book,
       })
     } catch (error) {
@@ -804,6 +804,8 @@ router.get('/', async (req, res, next) => {
     next(error)
   }
 })
+
+//TODO: implement encryption for OT upload
 //@route  POST /api/book
 //@desc   Create a new book
 //@access Private (Only sellers)
@@ -1003,10 +1005,10 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
 
     bookObj.releaseDateFormatted = book.releaseDate
       ? new Date(book.releaseDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
       : null
 
     return res.status(200).json({

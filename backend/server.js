@@ -11,9 +11,12 @@ import orderRoutes from './routes/seller/order.route.js'
 import dashboardRoutes from './routes/seller/dashboard.route.js'
 import { errorHandler } from '../backend/middleware/errorHandler.js'
 import './jobs/publishBooks.js'
+
+//environment configuration
 dotenv.config()
 
 const app = express()
+
 
 // Initialize Passport strategy
 initializePassport()
@@ -22,8 +25,8 @@ initializePassport()
 app.use(passport.initialize())
 
 //body parser middleware
-app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
 const mongoURI = keys.mongoURI
 
@@ -38,6 +41,7 @@ app.use('/api/users', users)
 app.use('/api/book', book)
 app.use('/api/order', orderRoutes)
 app.use('/api/seller', dashboardRoutes)
+
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 4000

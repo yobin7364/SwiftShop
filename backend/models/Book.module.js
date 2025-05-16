@@ -13,6 +13,7 @@ const reviewSchema = new Schema(
   { _id: false }
 )
 
+// book schema 
 const BookSchema = new Schema(
   {
     title: {
@@ -71,6 +72,9 @@ const BookSchema = new Schema(
   },
   { timestamps: true }
 )
+
+
+
 
 // Calculate average rating based on all reviews
 BookSchema.methods.calculateAverageRating = function () {

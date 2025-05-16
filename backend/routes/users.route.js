@@ -1,5 +1,4 @@
 import express from 'express'
-const router = express.Router()
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import keys from '../config/keys.config.js'
@@ -10,6 +9,9 @@ import User from '../models/User.module.js'
 import Book from '../models/Book.module.js'
 import { validateEditUser } from '../validator/edit.validator.js'
 import { validateChangePasswordInput } from '../validator/password.validator.js'
+
+const router = express.Router()
+
 
 // Access the secretOrKey from the dynamically imported keys
 const secret = keys.secretOrKey
