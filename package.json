@@ -1,7 +1,7 @@
 {
   "name": "younify",
   "version": "1.0.0",
-  "description": "",
+  "description": "Create .env file at the root level.\r Include required attributes of database like URI, PORT and Secret key.",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon backend/server.js"
@@ -14,11 +14,13 @@
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-jwt": "^8.5.1",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.0",
+    "forge": "^2.3.0",
     "helmet": "^8.0.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
@@ -26,6 +28,7 @@
     "mongoose": "^8.8.4",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
+    "node-forge": "^1.3.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "sanitize-html": "^2.15.0",

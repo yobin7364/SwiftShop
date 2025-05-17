@@ -15,6 +15,12 @@ import { genresList } from '../../config/genresList.js'
 import { errorHandler } from '../../middleware/errorHandler.js'
 import { validateBookQuery } from '../../validator/bookQuery.validator.js'
 import { sanitizeBook } from '../../utils/sanitizeBook.js'
+
+import { aesEncrypt } from '../../helper/encryption.js'
+
+import forge from 'node-forge'
+import crypto from 'crypto'
+
 const router = express.Router()
 
 
@@ -832,6 +838,9 @@ router.post(
         releaseDate,
       } = req.body
 
+      const aesKey = crypto.randomBytes(32)
+      const encryptedLink = aesEncrypt(aesKey, filePath)
+
       const book = new Book({
         title,
         author: req.user.id,
@@ -842,7 +851,7 @@ router.post(
         publisher,
         isbn,
         releaseDate,
-        file: { filePath },
+        file: { filePath: encryptedLink },
       })
 
       await book.save()
