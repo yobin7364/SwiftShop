@@ -1,6 +1,6 @@
-
+import crypto from 'crypto'
 // Descryption method to obtain book content
-function aesDecrypt(key, ciphertextBase64) {
+export const aesDecrypt = (key, ciphertextBase64) => {
     const ciphertext = Buffer.from(ciphertextBase64, 'base64')
     const iv = ciphertext.slice(0, 16)
     const encrypted = ciphertext.slice(16)

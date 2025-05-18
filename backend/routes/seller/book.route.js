@@ -17,9 +17,11 @@ import { validateBookQuery } from '../../validator/bookQuery.validator.js'
 import { sanitizeBook } from '../../utils/sanitizeBook.js'
 
 import { aesEncrypt } from '../../helper/encryption.js'
+import { aesDecrypt } from '../../helper/decryption.js'
 
 import forge from 'node-forge'
 import crypto from 'crypto'
+import EncryptedBook from '../../models/encryptedBook.module.js'
 
 const router = express.Router()
 
@@ -557,12 +559,22 @@ router.get(
 
       const totalPages = Math.ceil(total / limit)
 
+      const booksWithDecryptedLinks = await Promise.all(
+        books.map(async (book) => {
+          const keyEntry = await EncryptedBook.findOne({ bookId: book._id })
+          if (keyEntry) {
+            const aesKey = Buffer.from(keyEntry.aesKey, 'base64')
+            book.file.filePath = aesDecrypt(aesKey, book.file.filePath)
+          }
+
+          return sanitizeBook(formatBookWithDiscount(book), req.user)
+        })
+      )
+
       res.status(200).json({
         success: true,
         message: 'Your books retrieved successfully',
-        books: books.map((book) =>
-          sanitizeBook(formatBookWithDiscount(book), req.user)
-        ),
+        books: booksWithDecryptedLinks,
         currentPage: page,
         pageSize: limit,
         totalBooks: total,
@@ -838,6 +850,7 @@ router.post(
         releaseDate,
       } = req.body
 
+      // encrypting link before publishing
       const aesKey = crypto.randomBytes(32)
       const encryptedLink = aesEncrypt(aesKey, filePath)
 
@@ -857,6 +870,14 @@ router.post(
       await book.save()
       await book.populate('author', 'name')
 
+      //TODO: find a way to securely save the AES key
+      // Temporary solution for saving encrypted key
+      const encryptedBook = new EncryptedBook({
+        bookId: book._id,
+        aesKey: aesKey.toString('base64')
+      })
+
+      await encryptedBook.save()
       res
         .status(201)
         .json({ success: true, message: 'Book uploaded successfully', book })
@@ -923,6 +944,31 @@ router.put(
           .status(403)
           .json({ success: false, message: 'Book not released yet' })
       }
+
+      // finding saved AES key for the book
+      const encryptedBook = await EncryptedBook.findOne({ bookId })
+      if (!encryptedBook) return res.status(404).json({ success: false, message: 'Not a valid Book!' })
+
+      const aesKey = Buffer.from(encryptedBook.aesKey, 'base64')
+
+      try {
+        const currentDecryptedLink = aesDecrypt(aesKey, book.file.filePath)
+        if (filePath && filePath !== currentDecryptedLink) {
+          book.file.filePath = aesEncrypt(aesKey, filePath)
+        }
+      } catch (err) {
+        console.error('Decryption failed:', err.message)
+        return res.status(400).json({
+          success: false,
+          message: 'Decryption failed — possibly due to corrupted or mismatched link',
+        })
+      }
+
+      // //if file path change, re-encryption done.
+      // if (filePath && filePath !== aesDecrypt(aesKey, book.file.filePath)) {
+      //   book.file.filePath = aesEncrypt(aesKey, filePath)
+      // }
+
 
       book.title = title
       book.price = price
@@ -1073,6 +1119,7 @@ router.delete(
       }
 
       await Book.findByIdAndDelete(bookId)
+      await EncryptedBook.deleteOne({ bookId: req.params.bookId })
       res.json({ success: true, message: 'Book deleted successfully' })
     } catch (error) {
       next(error)
