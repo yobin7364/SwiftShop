@@ -38,7 +38,7 @@ export default function MyBookView({ open, onClose, book }) {
               <strong>Title:</strong> {book.title}
             </Typography>
             <Typography>
-              <strong>Price:</strong> ${book.price}
+              <strong>Price:</strong> ${book.discountedPrice}
             </Typography>
 
             <Typography>

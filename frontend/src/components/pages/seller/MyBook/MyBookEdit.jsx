@@ -67,7 +67,7 @@ export default function MyBookEdit({ open, onClose, book, onEdit }) {
       // Reset form with book data
       reset({
         title: book.title || "",
-        price: book.price || "",
+        price: book.discountedPrice || "",
         genre: matchedGenre ? matchedGenre.slug : "", // Set initial genre value
         publisher: book.publisher || "",
         ISBN: book.isbn || "",
