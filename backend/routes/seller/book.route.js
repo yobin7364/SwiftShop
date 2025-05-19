@@ -326,7 +326,7 @@ router.patch(
           success: false,
           error: {
             details: {
-              discount: `This book is already discounted until ${new Date(
+              discountPercentage: `This book is already discounted until ${new Date(
                 book.discountEnd
               ).toLocaleString()}. You can only apply a new discount after that.`,
             },
@@ -854,6 +854,9 @@ router.post(
       const aesKey = crypto.randomBytes(32)
       const encryptedLink = aesEncrypt(aesKey, filePath)
 
+      const now = new Date()
+
+
       const book = new Book({
         title,
         author: req.user.id,
@@ -865,6 +868,7 @@ router.post(
         isbn,
         releaseDate,
         file: { filePath: encryptedLink },
+        isPublished: releaseDate && new Date(releaseDate) <= now,
       })
 
       await book.save()
@@ -935,14 +939,6 @@ router.put(
         return res
           .status(403)
           .json({ success: false, message: 'Unauthorized to update this book' })
-      }
-      if (
-        !book.isPublished ||
-        (book.releaseDate && book.releaseDate > new Date())
-      ) {
-        return res
-          .status(403)
-          .json({ success: false, message: 'Book not released yet' })
       }
 
       // finding saved AES key for the book
@@ -1146,17 +1142,9 @@ router.post('/:id/review', reviewLimiter, async (req, res, next) => {
     })
   }
 
-  if (!comment || typeof comment !== 'string' || comment.trim() === '') {
-    return res.status(400).json({
-      success: false,
-      error: {
-        message: 'Validation failed',
-        details: { comment: 'Comment is required' },
-      },
-    })
-  }
+ const sanitizedComment =
+   typeof comment === 'string' ? sanitizeHtml(comment.trim()) : ''
 
-  const sanitizedComment = sanitizeHtml(comment.trim())
   const numericRating = Number(rating)
 
   if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
