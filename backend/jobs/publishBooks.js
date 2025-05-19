@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 import Book from '../models/Book.module.js'
 
 // Runs every 5 minutes
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('*/1 * * * *', async () => {
   try {
     const result = await Book.updateMany(
       {
