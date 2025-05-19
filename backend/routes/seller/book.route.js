@@ -951,11 +951,22 @@ router.put(
 
       const aesKey = Buffer.from(encryptedBook.aesKey, 'base64')
 
+      console.log(encryptedBook.aesKey)
+      console.log(book.file.filePath)
+      console.log(filePath)
+      const currentDecryptedLink = aesDecrypt(aesKey, book.file.filePath)
+      console.log(currentDecryptedLink)
+      console.log(filePath !== currentDecryptedLink)
+
+
       try {
         const currentDecryptedLink = aesDecrypt(aesKey, book.file.filePath)
         if (filePath && filePath !== currentDecryptedLink) {
+          console.log("line 965")
           book.file.filePath = aesEncrypt(aesKey, filePath)
+          console.log("line 967")
         }
+
       } catch (err) {
         console.error('Decryption failed:', err.message)
         return res.status(400).json({
@@ -963,12 +974,6 @@ router.put(
           message: 'Decryption failed — possibly due to corrupted or mismatched link',
         })
       }
-
-      // //if file path change, re-encryption done.
-      // if (filePath && filePath !== aesDecrypt(aesKey, book.file.filePath)) {
-      //   book.file.filePath = aesEncrypt(aesKey, filePath)
-      // }
-
 
       book.title = title
       book.price = price
@@ -978,7 +983,7 @@ router.put(
       book.publisher = publisher
       book.isbn = isbn
       book.releaseDate = releaseDate
-      book.file.filePath = filePath
+
 
       await book.save()
       res.json({ success: true, message: 'Book updated successfully', book })
