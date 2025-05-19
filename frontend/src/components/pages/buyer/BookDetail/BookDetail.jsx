@@ -34,6 +34,7 @@ const BookDetail = () => {
     dispatch(getSingleBookAction({ bookID }));
   }, [dispatch, bookID]);
 
+  // TODO
   const handleBuyNow = () => {
     setPaymentStatus("processing");
     setTimeout(() => {

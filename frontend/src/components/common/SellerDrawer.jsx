@@ -40,7 +40,7 @@ export const SellerDrawer = () => {
     { text: "Dashboard", icon: <DashboardIcon />, toGo: "/dashboardPage" },
     { text: "My Books", icon: <MenuBookIcon />, toGo: "/myBookPage" },
     { text: "Discount", icon: <LocalOfferIcon />, toGo: "/discountPage" },
-    { text: "Analytics", icon: <InsightsIcon />, toGo: "/analyticsPage" },
+    // { text: "Analytics", icon: <InsightsIcon />, toGo: "/analyticsPage" },
     { text: "Profile", icon: <AccountCircleIcon />, toGo: "/profilePage" },
     { text: "Logout", icon: <LogoutIcon />, toGo: "/logout" }, // Mark logout specially
   ];
