@@ -21,7 +21,7 @@ import { aesDecrypt } from '../../helper/decryption.js'
 
 import forge from 'node-forge'
 import crypto from 'crypto'
-import EncryptedBook from '../../models/encryptedBook.module.js'
+import AesBook from '../../models/AesBook.module.js'
 
 const router = express.Router()
 
@@ -561,7 +561,7 @@ router.get(
 
       const booksWithDecryptedLinks = await Promise.all(
         books.map(async (book) => {
-          const keyEntry = await EncryptedBook.findOne({ bookId: book._id })
+          const keyEntry = await AesBook.findOne({ bookId: book._id })
           if (keyEntry) {
             const aesKey = Buffer.from(keyEntry.aesKey, 'base64')
             book.file.filePath = aesDecrypt(aesKey, book.file.filePath)
@@ -872,12 +872,12 @@ router.post(
 
       //TODO: find a way to securely save the AES key
       // Temporary solution for saving encrypted key
-      const encryptedBook = new EncryptedBook({
+      const aesBook = new AesBook({
         bookId: book._id,
         aesKey: aesKey.toString('base64')
       })
 
-      await encryptedBook.save()
+      await aesBook.save()
       res
         .status(201)
         .json({ success: true, message: 'Book uploaded successfully', book })
@@ -946,25 +946,15 @@ router.put(
       }
 
       // finding saved AES key for the book
-      const encryptedBook = await EncryptedBook.findOne({ bookId })
-      if (!encryptedBook) return res.status(404).json({ success: false, message: 'Not a valid Book!' })
+      const aesBook = await AesBook.findOne({ bookId })
+      if (!aesBook) return res.status(404).json({ success: false, message: 'Not a valid Book!' })
 
-      const aesKey = Buffer.from(encryptedBook.aesKey, 'base64')
-
-      console.log(encryptedBook.aesKey)
-      console.log(book.file.filePath)
-      console.log(filePath)
-      const currentDecryptedLink = aesDecrypt(aesKey, book.file.filePath)
-      console.log(currentDecryptedLink)
-      console.log(filePath !== currentDecryptedLink)
-
+      const aesKey = Buffer.from(aesBook.aesKey, 'base64')
 
       try {
         const currentDecryptedLink = aesDecrypt(aesKey, book.file.filePath)
         if (filePath && filePath !== currentDecryptedLink) {
-          console.log("line 965")
           book.file.filePath = aesEncrypt(aesKey, filePath)
-          console.log("line 967")
         }
 
       } catch (err) {
@@ -1124,7 +1114,7 @@ router.delete(
       }
 
       await Book.findByIdAndDelete(bookId)
-      await EncryptedBook.deleteOne({ bookId: req.params.bookId })
+      await AesBook.deleteOne({ bookId: req.params.bookId })
       res.json({ success: true, message: 'Book deleted successfully' })
     } catch (error) {
       next(error)
