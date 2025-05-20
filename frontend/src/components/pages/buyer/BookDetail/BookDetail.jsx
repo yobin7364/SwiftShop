@@ -38,7 +38,7 @@ const BookDetail = () => {
   // Store book details and decrypted URL to localStorage without duplicates
   const storePurchaseDetails = (book, url) => {
     const newPurchase = {
-      id: book._id, // assuming _id is a unique identifier for the book
+      _id: book._id, // assuming _id is a unique identifier for the book
       title: book.title,
       author: book.author.name,
       price: book.price,
@@ -56,7 +56,7 @@ const BookDetail = () => {
       JSON.parse(localStorage.getItem("purchasedBooks")) || [];
 
     // Check if the book is already in the list
-    const isDuplicate = existingPurchases.some((b) => b.id === newPurchase.id);
+    const isDuplicate = existingPurchases.some((b) => b._id === newPurchase.id);
 
     if (!isDuplicate) {
       // Add the new purchase and store back to localStorage

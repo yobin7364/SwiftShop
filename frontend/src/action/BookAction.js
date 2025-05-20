@@ -183,8 +183,9 @@ export const postBookReviewAction = createAsyncThunk(
   "books/review",
   async ({ bookID, ratingData }, { rejectWithValue }) => {
     try {
+
       const { data } = await axios.post(
-        `api/book/${bookID}/review`,
+        `/api/book/${bookID}/review`,
         ratingData
       );
       return data;
