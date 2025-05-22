@@ -2,13 +2,12 @@ import express from 'express'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser'
 import users from './routes/users.route.js'
-import book from './routes/seller/book.route.js'
+import book from './routes/book.route.js'
 import mongoose from 'mongoose'
 import keys from './config/keys.config.js'
 import passport from 'passport'
 import initializePassport from './config/passport.config.js'
-import orderRoutes from './routes/seller/order.route.js'
-import dashboardRoutes from './routes/seller/dashboard.route.js'
+import dashboardRoutes from './routes/dashboard.route.js'
 import { errorHandler } from '../backend/middleware/errorHandler.js'
 import './jobs/publishBooks.js'
 
@@ -39,7 +38,6 @@ mongoose
 //Use routes
 app.use('/api/users', users)
 app.use('/api/book', book)
-app.use('/api/order', orderRoutes)
 app.use('/api/seller', dashboardRoutes)
 
 app.use(errorHandler)
