@@ -50,7 +50,6 @@ export const deleteSellerBookAction = createAsyncThunk(
 );
 
 // Get seller books
-
 export const getSellerBookAction = createAsyncThunk(
   "books/seller/myBooks",
   async ({ query, page = 1, limit = 5 }, { rejectWithValue }) => {
@@ -86,7 +85,6 @@ export const getSellerBookReviewsAction = createAsyncThunk(
 );
 
 // END, Seller Book API
-
 export const searchBooksAction = createAsyncThunk(
   "books/search",
   async ({ query, page = 1 }, { rejectWithValue }) => {
@@ -147,7 +145,7 @@ export const getNewlyAddedBooksAction = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.error?.details ||
-          "Loading Newly Added Books failed"
+        "Loading Newly Added Books failed"
       );
     }
   }
@@ -213,3 +211,27 @@ export const postBookReviewAction = createAsyncThunk(
     }
   }
 );
+
+export const purchaseBookAction = createAsyncThunk(
+  "books/purchase/single",
+  async ({ publicKeys, authorId }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.post(
+        `/api/book/purchase`,
+        {
+          publicKeys, authorId
+        }
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details || "Failed to Buy Book"
+      );
+    }
+  }
+);
+
+// const response = await axios.post(`${SERVER_URL}/api/book/purchase`, {
+//   publicKeys,
+//   merchantId: MERCHANT_ID
+// })

@@ -31,6 +31,8 @@ const optionalAuth = expressjwt({
   algorithms: ['HS256'],
   credentialsRequired: false, // 👈 this makes JWT optional
 })
+
+
 //@route  GET /api/book/search
 //@desc   Search books by title, description, genre or author name
 //@access Public
@@ -1081,26 +1083,26 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     }
 
     const bookObj = sanitizeBook(book, req.user || {})
-const authorId = book.author._id?.toString() || book.author.toString()
+    const authorId = book.author._id?.toString() || book.author.toString()
 
-const authorBooks = await Book.find({
-  author: authorId,
-  isPublished: true,
-  releaseDate: { $lte: new Date() },
-})
-  .sort({ createdAt: -1 })
-  .select('_id')
+    const authorBooks = await Book.find({
+      author: authorId,
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .select('_id')
 
-const authorIndex = authorBooks.findIndex((b) => b._id.toString() === id)
-const totalBooksByAuthor = authorBooks.length
+    const authorIndex = authorBooks.findIndex((b) => b._id.toString() === id)
+    const totalBooksByAuthor = authorBooks.length
 
 
-bookObj.author = {
-  _id: book.author._id,
-  name: book.author.name,
-  totalBooks: totalBooksByAuthor,
-  index: authorIndex,
-}
+    bookObj.author = {
+      _id: book.author._id,
+      name: book.author.name,
+      totalBooks: totalBooksByAuthor,
+      index: authorIndex,
+    }
 
     const recentReviews = await Review.find({ bookId: id })
       .sort({ createdAt: -1 })
@@ -1120,10 +1122,10 @@ bookObj.author = {
 
     bookObj.releaseDateFormatted = book.releaseDate
       ? new Date(book.releaseDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
       : null
 
     return res.status(200).json({
@@ -1211,8 +1213,8 @@ router.post('/:id/review', reviewLimiter, async (req, res, next) => {
     })
   }
 
- const sanitizedComment =
-   typeof comment === 'string' ? sanitizeHtml(comment.trim()) : ''
+  const sanitizedComment =
+    typeof comment === 'string' ? sanitizeHtml(comment.trim()) : ''
 
   const numericRating = Number(rating)
 
@@ -1342,19 +1344,23 @@ router.get('/:id/reviews', async (req, res, next) => {
 })
 
 
+
+
 //@end-point: post /api/book/purchase
 // end point for purchasing book
 // Implementation of OT while making transaction.
 router.post(
   '/purchase',
-
   passport.authenticate('jwt', { session: false }),
 
-  async (req, res) => {
+  async (req, res, next) => {
     const {
       authorId,
       publicKeys
     } = req.body
+
+    // console.log("authorId:" + authorId);
+    // console.log("publicKeys:" + publicKeys);
 
     if (!Array.isArray(publicKeys)) {
       return res.status(400).json({ error: 'Invalid input format!' })
@@ -1365,12 +1371,21 @@ router.post(
     }
 
     try {
+
+
       const books = await Book.find({ author: authorId }).sort({ createdAt: -1 })
+
+
+
+
       const aesKeys = await AesBook.find({ bookId: { $in: books.map(b => b._id) } })
+
 
       if (publicKeys.length !== books.length || aesKeys.length !== books.length) {
         return res.status(400).json({ error: 'Mismatch in book count and keys' })
       }
+
+
 
       //encrypted aes keys: buyer's public used 
       const rsaEncryptedKeys = []
@@ -1382,7 +1397,7 @@ router.post(
       for (let i = 0; i < books.length; i++) {
         const pubKey = forge.pki.publicKeyFromPem(publicKeys[i])
         const aesKey = Buffer.from(aesKeys.find(k => k.bookId.equals(books[i]._id)).aesKey, 'base64')
-        const encryptedAES = pubKey.encrypt(aesKey.toString(post, 'binary'), 'RSA-OAEP')
+        const encryptedAES = pubKey.encrypt(aesKey.toString('binary'), 'RSA-OAEP')
         rsaEncryptedKeys.push(Buffer.from(encryptedAES, 'binary').toString('base64'))
         aesCiphertexts.push(books[i].file.filePath)
       }

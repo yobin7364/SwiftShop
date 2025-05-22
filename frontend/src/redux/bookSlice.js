@@ -8,6 +8,7 @@ import {
   postBookReviewAction,
   getTopRatedBooksAction,
   getNewlyAddedBooksAction,
+  purchaseBookAction
 } from "../action/BookAction";
 
 const initialState = {
@@ -45,6 +46,11 @@ const initialState = {
   searchBooks: [],
   loadingSearchBooks: false,
   errorSearchBooks: null,
+
+  // Purcahse book
+  loadingPurchaseBook: false,
+
+
 
   // Review Book
   loadingReviewBook: false,
@@ -129,6 +135,18 @@ const bookSlice = createSlice({
       .addCase(getGenresAction.rejected, (state, action) => {
         state.loadingGenres = false;
         state.errorGenres = action.payload;
+      });
+
+    // Purchase
+    builder
+      .addCase(purchaseBookAction.pending, (state) => {
+        state.loadingPurchaseBook = true;
+      })
+      .addCase(purchaseBookAction.fulfilled, (state, action) => {
+        state.loadingPurchaseBook = false;
+      })
+      .addCase(purchaseBookAction.rejected, (state, action) => {
+        state.loadingPurchaseBook = false;
       });
 
     // Genre Books
