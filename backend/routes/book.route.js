@@ -834,6 +834,45 @@ router.get('/', async (req, res, next) => {
   }
 })
 
+// //@route  GET /api/book/summary/:authorId
+// //@desc   Get total books by a specific author
+// //@access Public
+// router.get('/summary/:authorId', async (req, res, next) => {
+//   const { authorId } = req.params;
+
+//   if (!mongoose.Types.ObjectId.isValid(authorId)) {
+//     return res.status(400).json({
+//       success: false,
+//       error: { authorId: 'Invalid author ID' },
+//     });
+//   }
+
+//   try {
+//     const books = await Book.find({
+//       author: authorId,
+//       isPublished: true,
+//       releaseDate: { $lte: new Date() },
+//     })
+//       .populate('author', 'name')
+//       .select('title author');
+
+//     const totalBooks = books.length;
+
+//     const summary = books.map((book) => ({
+//       title: book.title,
+//       author: book.author?.name || 'Unknown',
+//     }));
+
+//     res.status(200).json({
+//       success: true,
+//       totalBooks,
+//       books: summary,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 //TODO: implement encryption for OT upload
 //@route  POST /api/book
 //@desc   Create a new book
@@ -1042,6 +1081,26 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     }
 
     const bookObj = sanitizeBook(book, req.user || {})
+const authorId = book.author._id?.toString() || book.author.toString()
+
+const authorBooks = await Book.find({
+  author: authorId,
+  isPublished: true,
+  releaseDate: { $lte: new Date() },
+})
+  .sort({ createdAt: -1 })
+  .select('_id')
+
+const authorIndex = authorBooks.findIndex((b) => b._id.toString() === id)
+const totalBooksByAuthor = authorBooks.length
+
+
+bookObj.author = {
+  _id: book.author._id,
+  name: book.author.name,
+  totalBooks: totalBooksByAuthor,
+  index: authorIndex,
+}
 
     const recentReviews = await Review.find({ bookId: id })
       .sort({ createdAt: -1 })
@@ -1059,13 +1118,12 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     bookObj.totalReviews = totalReviews
     bookObj.averageRating = averageRating
 
-
     bookObj.releaseDateFormatted = book.releaseDate
       ? new Date(book.releaseDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
       : null
 
     return res.status(200).json({
