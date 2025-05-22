@@ -3,8 +3,8 @@
 import express from 'express'
 import mongoose from 'mongoose'
 import passport from 'passport'
-import Order from '../../models/Order.module.js'
-import Book from '../../models/Book.module.js'
+import Order from '../models/Order.module.js'
+import Book from '../models/Book.module.js'
 
 const router = express.Router()
 
@@ -81,9 +81,9 @@ router.get(
       const avgRating =
         books.length > 0
           ? (
-              books.reduce((sum, book) => sum + (book.averageRating || 0), 0) /
-              books.length
-            ).toFixed(2)
+            books.reduce((sum, book) => sum + (book.averageRating || 0), 0) /
+            books.length
+          ).toFixed(2)
           : '0.00'
 
       // 5. Top Selling Books

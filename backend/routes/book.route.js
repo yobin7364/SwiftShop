@@ -1,27 +1,27 @@
 import express from 'express'
 import passport from 'passport'
 import mongoose from 'mongoose'
-import { validateBook } from '../../validator/book.validator.js'
-import Book from '../../models/Book.module.js'
+import { validateBook } from '../validator/book.validator.js'
+import Book from '../models/Book.module.js'
 import rateLimit from 'express-rate-limit'
 import sanitizeHtml from 'sanitize-html'
-import Review from '../../models/Review.module.js'
-import { formatBookWithDiscount } from '../../utils/discountHelper.js'
-import { formatReview } from '../../utils/formatReview.js'
+import Review from '../models/Review.module.js'
+import { formatBookWithDiscount } from '../utils/discountHelper.js'
+import { formatReview } from '../utils/formatReview.js'
 
 import { expressjwt } from 'express-jwt'
-import keys from '../../config/keys.config.js'
-import { genresList } from '../../config/genresList.js'
-import { errorHandler } from '../../middleware/errorHandler.js'
-import { validateBookQuery } from '../../validator/bookQuery.validator.js'
-import { sanitizeBook } from '../../utils/sanitizeBook.js'
+import keys from '../config/keys.config.js'
+import { genresList } from '../config/genresList.js'
+import { errorHandler } from '../middleware/errorHandler.js'
+import { validateBookQuery } from '../validator/bookQuery.validator.js'
+import { sanitizeBook } from '../utils/sanitizeBook.js'
 
-import { aesEncrypt } from '../../helper/encryption.js'
-import { aesDecrypt } from '../../helper/decryption.js'
+import { aesEncrypt } from '../helper/encryption.js'
+import { aesDecrypt } from '../helper/decryption.js'
 
 import forge from 'node-forge'
 import crypto from 'crypto'
-import AesBook from '../../models/AesBook.module.js'
+import AesBook from '../models/AesBook.module.js'
 
 const router = express.Router()
 
@@ -521,7 +521,9 @@ router.get('/discounted', async (req, res, next) => {
   } catch (err) {
     next(err)
   }
-}) // @route   GET /api/book/myBooks
+})
+
+// @route   GET /api/book/myBooks
 // @desc    Get books uploaded by the logged-in seller, with optional search
 // @access  Private
 router.get(
@@ -594,6 +596,15 @@ router.get(
     }
   }
 )
+
+
+// router.get(
+//   '/book-count'
+//   passport.authenticate('jwt', { session: false }),
+//   async (req, res, next) => {
+
+//   }
+// )
 
 //@route  GET /api/book/my-discounted
 //@desc   Get discounted books uploaded by the logged-in seller
@@ -1284,5 +1295,65 @@ router.get('/:id/reviews', async (req, res, next) => {
   }
 })
 
+
+//@end-point: post /api/book/purchase
+// end point for purchasing book
+// Implementation of OT while making transaction.
+router.post(
+  '/purchase',
+
+  passport.authenticate('jwt', { session: false }),
+
+  async (req, res) => {
+    const {
+      authorId,
+      publicKeys
+    } = req.body
+
+    if (!Array.isArray(publicKeys)) {
+      return res.status(400).json({ error: 'Invalid input format!' })
+    }
+
+    if (!authorId) {
+      return res.status(400).json({ error: 'Author id missing!' })
+    }
+
+    try {
+      const books = await Book.find({ author: authorId }).sort({ createdAt: -1 })
+      const aesKeys = await AesBook.find({ bookId: { $in: books.map(b => b._id) } })
+
+      if (publicKeys.length !== books.length || aesKeys.length !== books.length) {
+        return res.status(400).json({ error: 'Mismatch in book count and keys' })
+      }
+
+      //encrypted aes keys: buyer's public used 
+      const rsaEncryptedKeys = []
+
+      // aes keys for published book: in encrypted mode
+      const aesCiphertexts = []
+
+      // encrypting aes keys using buyers public key
+      for (let i = 0; i < books.length; i++) {
+        const pubKey = forge.pki.publicKeyFromPem(publicKeys[i])
+        const aesKey = Buffer.from(aesKeys.find(k => k.bookId.equals(books[i]._id)).aesKey, 'base64')
+        const encryptedAES = pubKey.encrypt(aesKey.toString(post, 'binary'), 'RSA-OAEP')
+        rsaEncryptedKeys.push(Buffer.from(encryptedAES, 'binary').toString('base64'))
+        aesCiphertexts.push(books[i].file.filePath)
+      }
+
+
+      res.status(201).json({
+        rsaEncryptedKeys,
+        aesCiphertexts,
+        success: true,
+        message: 'Book purchase simulated successfully!',
+      })
+    } catch (error) {
+      console.error('unexpected error occured while purhcase:', error)
+      next(error)
+    }
+  }
+
+)
 
 export default router
