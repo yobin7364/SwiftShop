@@ -135,6 +135,24 @@ export const getTopRatedBooksAction = createAsyncThunk(
   }
 );
 
+//
+export const getNewlyAddedBooksAction = createAsyncThunk(
+  "books/newlyAddedBooks",
+  async ({ limit = 6, page = 1 }, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get(
+        `/api/book/new?limit=${limit}&page=${page}`
+      );
+      return data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error?.details ||
+          "Loading Newly Added Books failed"
+      );
+    }
+  }
+);
+
 export const getSingleBookAction = createAsyncThunk(
   "books/single",
   async ({ bookID }, { rejectWithValue }) => {
@@ -184,7 +202,7 @@ export const postBookReviewAction = createAsyncThunk(
   async ({ bookID, ratingData }, { rejectWithValue }) => {
     try {
       const { data } = await axios.post(
-        `api/book/${bookID}/review`,
+        `/api/book/${bookID}/review`,
         ratingData
       );
       return data;

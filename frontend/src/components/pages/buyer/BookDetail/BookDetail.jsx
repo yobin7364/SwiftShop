@@ -34,15 +34,55 @@ const BookDetail = () => {
     dispatch(getSingleBookAction({ bookID }));
   }, [dispatch, bookID]);
 
+  // Store book details and decrypted url to the localstorage
+  // Store book details and decrypted URL to localStorage without duplicates
+  const storePurchaseDetails = (book, url) => {
+    const newPurchase = {
+      _id: book._id, // assuming _id is a unique identifier for the book
+      title: book.title,
+      author: book.author.name,
+      price: book.price,
+      discountedPrice:
+        book.discountPercentage > 0
+          ? (book.price * (1 - book.discountPercentage / 100)).toFixed(2)
+          : book.price,
+      coverImage: book.coverImage,
+      url: url,
+      purchaseDate: new Date().toISOString(),
+    };
+
+    // Get existing purchases
+    const existingPurchases =
+      JSON.parse(localStorage.getItem("purchasedBooks")) || [];
+
+    // Check if the book is already in the list
+    const isDuplicate = existingPurchases.some((b) => b._id === newPurchase.id);
+
+    if (!isDuplicate) {
+      // Add the new purchase and store back to localStorage
+      existingPurchases.push(newPurchase);
+      localStorage.setItem("purchasedBooks", JSON.stringify(existingPurchases));
+    }
+  };
+
   // TODO
   const handleBuyNow = () => {
     setPaymentStatus("processing");
     setTimeout(() => {
       setPaymentStatus("success");
+
+      // Simulate a URL returned from an API (replace this later with actual API response)
+      const downloadUrl = "https://example.com/ebook-download/" + bookID;
+
+      // Store book details + URL in localStorage
+      storePurchaseDetails(book, downloadUrl);
+
       setTimeout(() => {
         navigate("/");
       }, 1000);
     }, 2000);
+
+    //
   };
 
   if (isLoading) {

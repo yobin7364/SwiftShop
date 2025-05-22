@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -6,7 +6,6 @@ import {
   Card,
   CardMedia,
   CardContent,
-  Pagination,
   Button,
   Dialog,
   DialogTitle,
@@ -20,23 +19,8 @@ import { useDispatch } from "react-redux";
 import { showToast } from "../../../../redux/toastSlice";
 import { postBookReviewAction } from "../../../../action/BookAction";
 
-const ebooks = [
-  {
-    _id: "68136f2e308a0170280e5f59",
-    title: "Buchanan's Express",
-    image:
-      "https://plus.unsplash.com/premium_photo-1682125773446-259ce64f9dd7?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    author: "John Doe",
-    urlForBook:
-      "https://antilogicalism.com/wp-content/uploads/2018/03/short-history-world.pdf",
-  },
-  // other books...
-];
-
-const ITEMS_PER_PAGE = 4;
-
 export default function BuyerBooks() {
-  const [page, setPage] = useState(1);
+  const [ebooks, setEbooks] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [rating, setRating] = useState(0);
@@ -45,7 +29,13 @@ export default function BuyerBooks() {
 
   const dispatch = useDispatch();
 
-  const handleChange = (event, value) => setPage(value);
+  // Load books from localStorage on mount
+  useEffect(() => {
+    const storedBooks = localStorage.getItem("purchasedBooks");
+    if (storedBooks) {
+      setEbooks(JSON.parse(storedBooks));
+    }
+  }, []);
 
   const handleGiveReview = (book) => {
     setSelectedBook(book);
@@ -81,11 +71,6 @@ export default function BuyerBooks() {
     }
   };
 
-  const paginatedEbooks = ebooks.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
-
   return (
     <Box
       sx={{
@@ -101,48 +86,45 @@ export default function BuyerBooks() {
         My Books
       </Typography>
 
-      <Grid container spacing={3}>
-        {paginatedEbooks.map((ebook, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card>
-              <CardMedia
-                component="img"
-                height="200"
-                image={ebook.image}
-                alt={ebook.title}
-                onClick={() => window.open(ebook.urlForBook, "_blank")}
-                sx={{ cursor: "pointer" }}
-              />
-              <CardContent sx={{ textAlign: "center" }}>
-                <Typography variant="h6" noWrap>
-                  {ebook.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  by {ebook.author}
-                </Typography>
+      {ebooks.length === 0 ? (
+        <Typography variant="body1">No purchased books found.</Typography>
+      ) : (
+        <Grid container spacing={3}>
+          {ebooks.map((ebook, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card>
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={ebook.coverImage}
+                  alt={ebook.title}
+                  onClick={() => window.open(ebook.url, "_blank")}
+                  sx={{ cursor: "pointer" }}
+                />
+                <CardContent sx={{ textAlign: "center" }}>
+                  <Typography variant="h6" noWrap>
+                    {ebook.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    by {ebook.author}
+                  </Typography>
 
-                <Box sx={{ mt: 2 }}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    onClick={() => handleGiveReview(ebook)}
-                  >
-                    Give Rating and Review
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      <Pagination
-        count={Math.ceil(ebooks.length / ITEMS_PER_PAGE)}
-        page={page}
-        onChange={handleChange}
-        sx={{ marginTop: 3, display: "flex", justifyContent: "center" }}
-      />
+                  <Box sx={{ mt: 2 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      onClick={() => handleGiveReview(ebook)}
+                    >
+                      Give Rating and Review
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         {selectedBook && (
@@ -171,7 +153,7 @@ export default function BuyerBooks() {
               <Box display="flex" alignItems="center" gap={2} mb={3} mt={1}>
                 <CardMedia
                   component="img"
-                  image={selectedBook.image}
+                  image={selectedBook.coverImage}
                   alt={selectedBook.title}
                   sx={{
                     width: 80,

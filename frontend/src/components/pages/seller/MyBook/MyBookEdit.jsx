@@ -25,13 +25,54 @@ import {
 import { showToast } from "../../../../redux/toastSlice";
 
 const genreList = [
-  { name: "Action", slug: "action" },
-  { name: "Adventure", slug: "adventure" },
-  { name: "Mystery", slug: "mystery" },
-  { name: "Science Fiction", slug: "science-fiction" },
-  { name: "Romance", slug: "romance" },
-  { name: "Thriller", slug: "thriller" },
-  { name: "Horror", slug: "horror" },
+  {
+    name: "Action",
+    slug: "action",
+    image:
+      "https://img.freepik.com/free-vector/superhero-comic-style-illustration_23-2148975014.jpg", // Cartoon action
+  },
+  {
+    name: "Adventure",
+    slug: "adventure",
+    image:
+      "https://img.freepik.com/free-vector/cartoon-adventure-background-with-map-elements_23-2148999783.jpg", // Adventure map
+  },
+  {
+    name: "Mystery",
+    slug: "mystery",
+    image:
+      "https://img.freepik.com/free-vector/comic-style-mystery-background_23-2148994460.jpg", // Mystery comic
+  },
+  {
+    name: "Science Fiction",
+    slug: "science-fiction",
+    image:
+      "https://img.freepik.com/free-vector/science-fiction-cartoon-background_23-2148961577.jpg", // Sci-fi cartoon
+  },
+  {
+    name: "Romance",
+    slug: "romance",
+    image:
+      "https://img.freepik.com/free-vector/romantic-couple-cartoon-illustration_23-2148958132.jpg", // Romance cartoon
+  },
+  {
+    name: "Thriller",
+    slug: "thriller",
+    image:
+      "https://img.freepik.com/free-vector/thriller-movie-poster-with-silhouette_23-2148667094.jpg", // Thriller dark
+  },
+  {
+    name: "Horror",
+    slug: "horror",
+    image:
+      "https://img.freepik.com/free-vector/horror-movie-background-with-haunted-house_23-2148658203.jpg", // Horror haunted
+  },
+  {
+    name: "Health",
+    slug: "health",
+    image:
+      "https://img.freepik.com/free-vector/healthy-lifestyle-cartoon-illustration_23-2148552951.jpg", // Cartoon health
+  },
 ];
 
 export default function MyBookEdit({ open, onClose, book, onEdit }) {

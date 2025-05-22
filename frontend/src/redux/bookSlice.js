@@ -7,6 +7,7 @@ import {
   searchBooksAction,
   postBookReviewAction,
   getTopRatedBooksAction,
+  getNewlyAddedBooksAction,
 } from "../action/BookAction";
 
 const initialState = {
@@ -34,6 +35,11 @@ const initialState = {
   topRatedBooks: [],
   loadingTopRatedBooks: false,
   errorTopRatedBooks: null,
+
+  // Newly Added Books
+  newlyAddedBooks: [],
+  loadingNewlyAddedBooks: false,
+  errorNewlyAddedBooks: null,
 
   // Search Books
   searchBooks: [],
@@ -78,6 +84,21 @@ const bookSlice = createSlice({
       .addCase(getTopRatedBooksAction.rejected, (state, action) => {
         state.loadingTopRatedBooks = false;
         state.errorTopRatedBooks = action.payload;
+      });
+
+    // Newly Added Book
+    builder
+      .addCase(getNewlyAddedBooksAction.pending, (state) => {
+        state.loadingNewlyAddedBooks = true;
+        state.errorNewlyAddedBooks = null;
+      })
+      .addCase(getNewlyAddedBooksAction.fulfilled, (state, action) => {
+        state.loadingNewlyAddedBooks = false;
+        state.newlyAddedBooks = action.payload;
+      })
+      .addCase(getNewlyAddedBooksAction.rejected, (state, action) => {
+        state.loadingNewlyAddedBooks = false;
+        state.errorNewlyAddedBooks = action.payload;
       });
 
     // Single Book
