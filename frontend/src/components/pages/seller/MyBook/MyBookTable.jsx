@@ -130,7 +130,7 @@ export default function MyBookTable() {
               {books.map((book) => (
                 <TableRow key={book._id}>
                   <TableCell>{book.title}</TableCell>
-                  <TableCell>${book.discountedPrice}</TableCell>
+                  <TableCell>${book.price}</TableCell>
                   <TableCell>{book.publisher}</TableCell>
                   <TableCell>{book.isbn}</TableCell>
                   <TableCell>
