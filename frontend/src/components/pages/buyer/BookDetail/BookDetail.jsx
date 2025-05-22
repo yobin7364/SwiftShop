@@ -13,24 +13,24 @@ import {
 } from "@mui/material";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import { useDispatch, useSelector } from "react-redux";
-import { getSingleBookAction, purchaseBookAction } from "../../../../action/BookAction";
+import {
+  getSingleBookAction,
+  purchaseBookAction,
+} from "../../../../action/BookAction";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import forge from 'node-forge';
-
-
+import forge from "node-forge";
 
 function aesDecrypt(keyBytes, ciphertextBase64) {
-  const ciphertext = forge.util.decode64(ciphertextBase64)
-  const buffer = forge.util.createBuffer(ciphertext, 'raw')
-  const iv = buffer.getBytes(16)
-  const encrypted = buffer.getBytes()
+  const ciphertext = forge.util.decode64(ciphertextBase64);
+  const buffer = forge.util.createBuffer(ciphertext, "raw");
+  const iv = buffer.getBytes(16);
+  const encrypted = buffer.getBytes();
 
-  const decipher = forge.cipher.createDecipher('AES-CBC', keyBytes)
-  decipher.start({ iv })
-  decipher.update(forge.util.createBuffer(encrypted, 'raw'))
-  const success = decipher.finish()
-  return success ? decipher.output.toString() : '[decryption-failed]'
-
+  const decipher = forge.cipher.createDecipher("AES-CBC", keyBytes);
+  decipher.start({ iv });
+  decipher.update(forge.util.createBuffer(encrypted, "raw"));
+  const success = decipher.finish();
+  return success ? decipher.output.toString() : "[decryption-failed]";
 }
 
 const BookDetail = () => {
@@ -48,8 +48,6 @@ const BookDetail = () => {
   } = useSelector((state) => state.books);
   const [isPurchased, setIsPurchased] = useState(false);
 
-
-
   // Load books from localStorage on mount
   useEffect(() => {
     const storedBooks = localStorage.getItem("purchasedBooks");
@@ -64,7 +62,6 @@ const BookDetail = () => {
       setIsPurchased(false); // fallback to false if no match
     }
   }, [book]);
-
 
   // const {
   //   purchaseBooks: { book } = {},
@@ -108,64 +105,68 @@ const BookDetail = () => {
   };
 
   // TODO
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     setPaymentStatus("processing");
 
+    setTimeout(async () => {
+      // get total books published count of particular author
+      const totalbooks = book?.author?.totalBooks;
+      const chosenIndex = book?.author?.index;
 
-
-    // get total books published count of particular author
-    const totalbooks = book?.author?.totalBooks;
-    const chosenIndex = book?.author?.index;
-
-
-    //Generate N RSA key pairs and discard private keys except chosenIndex
-    const keyPairs = Array.from({ length: totalbooks }, () => forge.pki.rsa.generateKeyPair({ bits: 2048 }))
-    const publicKeys = keyPairs.map(kp => forge.pki.publicKeyToPem(kp.publicKey))
-    const chosenPrivateKey = keyPairs[chosenIndex].privateKey
-    keyPairs.forEach((kp, i) => { if (i !== chosenIndex) kp.privateKey = null })
-
-
-    try {
-      const resultAction = await dispatch(
-        purchaseBookAction({
-          publicKeys,
-          authorId: book.author._id,
-        })
+      //Generate N RSA key pairs and discard private keys except chosenIndex
+      const keyPairs = Array.from({ length: totalbooks }, () =>
+        forge.pki.rsa.generateKeyPair({ bits: 2048 })
       );
+      const publicKeys = keyPairs.map((kp) =>
+        forge.pki.publicKeyToPem(kp.publicKey)
+      );
+      const chosenPrivateKey = keyPairs[chosenIndex].privateKey;
+      keyPairs.forEach((kp, i) => {
+        if (i !== chosenIndex) kp.privateKey = null;
+      });
 
-      if (purchaseBookAction.fulfilled.match(resultAction)) {
-        const { rsaEncryptedKeys, aesCiphertexts } = resultAction.payload;
+      try {
+        const resultAction = await dispatch(
+          purchaseBookAction({
+            publicKeys,
+            authorId: book.author._id,
+          })
+        );
 
+        if (purchaseBookAction.fulfilled.match(resultAction)) {
+          const { rsaEncryptedKeys, aesCiphertexts } = resultAction.payload;
 
-        const encryptedAESBinary = forge.util.decode64(rsaEncryptedKeys[chosenIndex])
-        const decryptedAESBinary = chosenPrivateKey.decrypt(encryptedAESBinary, 'RSA-OAEP')
-        const aesKey = decryptedAESBinary
+          const encryptedAESBinary = forge.util.decode64(
+            rsaEncryptedKeys[chosenIndex]
+          );
+          const decryptedAESBinary = chosenPrivateKey.decrypt(
+            encryptedAESBinary,
+            "RSA-OAEP"
+          );
+          const aesKey = decryptedAESBinary;
 
-        const bookLink = aesDecrypt(aesKey, aesCiphertexts[chosenIndex])
+          const bookLink = aesDecrypt(aesKey, aesCiphertexts[chosenIndex]);
 
-        setPaymentStatus("success");
+          setPaymentStatus("success");
 
-        // // Store book details + URL in localStorage
-        storePurchaseDetails(book, bookLink);
+          // // Store book details + URL in localStorage
+          storePurchaseDetails(book, bookLink);
 
-        setTimeout(() => {
-          navigate("/buyerBooks");
-        }, 1000);
-
-      } else {
-        const error = resultAction.payload || resultAction.error.message;
-        console.error("Purchase failed:", error);
+          setTimeout(() => {
+            navigate("/buyerBooks");
+          }, 1000);
+        } else {
+          const error = resultAction.payload || resultAction.error.message;
+          console.error("Purchase failed:", error);
+          // setPaymentStatus("error");
+          setPaymentStatus("error");
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
         // setPaymentStatus("error");
         setPaymentStatus("error");
-
       }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      // setPaymentStatus("error");
-      setPaymentStatus("error");
-
-    }
-
+    }, 0);
   };
 
   if (isLoading) {
@@ -272,14 +273,16 @@ const BookDetail = () => {
                 variant="contained"
                 color="primary"
                 onClick={handleBuyNow}
-                disabled={!isAuthenticated || paymentStatus !== "idle" || isPurchased}
+                disabled={
+                  !isAuthenticated || paymentStatus !== "idle" || isPurchased
+                }
                 sx={{ minWidth: 150 }}
               >
                 {isPurchased
                   ? "Already Purchased"
                   : paymentStatus === "processing"
-                    ? "Processing..."
-                    : "Buy Now"}
+                  ? "Processing..."
+                  : "Buy Now"}
               </Button>
               {paymentStatus === "processing" && (
                 <CircularProgress
@@ -385,9 +388,6 @@ const BookDetail = () => {
           ))
         )}
       </Box>
-
-
-
     </Box>
   );
 };
