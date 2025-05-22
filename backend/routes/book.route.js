@@ -833,6 +833,42 @@ router.get('/', async (req, res, next) => {
     next(error)
   }
 })
+router.get('/summary/:authorId', async (req, res, next) => {
+  const { authorId } = req.params
+
+  if (!mongoose.Types.ObjectId.isValid(authorId)) {
+    return res.status(400).json({
+      success: false,
+      error: { authorId: 'Invalid author ID' },
+    })
+  }
+
+  try {
+    const books = await Book.find({
+      author: authorId,
+      isPublished: true,
+      releaseDate: { $lte: new Date() },
+    })
+      .populate('author', 'name')
+      .select('title author')
+
+    const totalBooks = books.length
+
+    const summary = books.map((book) => ({
+      title: book.title,
+      author: book.author?.name || 'Unknown',
+    }))
+
+    res.status(200).json({
+      success: true,
+      totalBooks,
+      books: summary,
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
 
 //TODO: implement encryption for OT upload
 //@route  POST /api/book
