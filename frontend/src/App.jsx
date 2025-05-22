@@ -25,6 +25,7 @@ import GenreBooksPage from "./components/pages/buyer/BookPages/GenreBooksPage";
 import SearchResultsPage from "./components/pages/buyer/BookPages/SearchResultsPage";
 import CommonToast from "./components/common/CommonToast";
 import TopRatedPage from "./components/pages/buyer/BookPages/TopRatedPage";
+import NewlyAddedBooksPage from "./components/pages/buyer/BookPages/NewlyAddedBooksPage";
 
 if (localStorage.authToken) {
   setAuthToken(localStorage.authToken);
@@ -90,6 +91,11 @@ function App() {
             <Route path="/search" element={<SearchResultsPage />} />
 
             <Route path="/topRatedPage" element={<TopRatedPage />} />
+
+            <Route
+              path="/newlyAddedBooksPage"
+              element={<NewlyAddedBooksPage />}
+            />
           </>
         )}
       </Routes>
